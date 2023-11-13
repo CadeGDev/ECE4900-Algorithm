@@ -13,9 +13,9 @@ class Algorithm_v0_1(nn.Module):
         super(Algorithm_v0_1, self).__init__()
 
 
-        # # Input layer for a spectrogram with 2 channels (e.g., real and imaginary parts)
+        # Input layer for a spectrogram with 2? channels (e.g., real and imaginary parts)
         self.conv1 = nn.Conv2d(2, 16, kernel_size=3)
-        self.pool = nn.MaxPool2d(2)
+        self.pool = nn.MaxPool2d(2) # Max pooling over (2,2) window
         self.conv2 = nn.Conv2d(16, 32, kernel_size=3)
         self.fc1 = nn.Linear(32 * 5 * 5, 128)  # Adjust the input size as needed
         self.fc2 = nn.Linear(128, 128) # Num classes
