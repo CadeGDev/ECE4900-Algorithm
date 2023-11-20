@@ -3,9 +3,37 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms.v2 as transforms  # For data preprocessing
+import torchvision
 from torch.utils.data import DataLoader, TensorDataset
 from PIL import Image
 from sklearn.model_selection import train_test_split # To install run "pip install scikit-learn" in terminal
+
+import librosa
+import librosa.display
+import numpy as np
+import matplotlib.pyplot as plt
+
+# This is a example spectrogram generation
+
+# # Load audio file
+# y, sr = librosa.load('sir_duke_fast.ogg')
+
+# # Compute spectrogram
+# spec = librosa.feature.melspectrogram(y=y, sr=sr)
+
+# # Convert power to decibels
+# spec_db = librosa.power_to_db(spec, ref=np.max)
+
+# # Plot spectrogram
+# fig, ax = plt.subplots(nrows = 1, ncols = 1)
+# img = librosa.display.specshow(spec_db, x_axis='time', y_axis='mel', ax = ax)
+# fig.colorbar(img, ax = ax, format='%+2.0f dB')
+# ax.set_title('Spectrogram')
+# fig.show()
+
+# # Save the figure as a TIFF file
+# plt.savefig('spectrogram.tiff', format='tiff')
+
 
 # Define the path to your spectrogram image
 # TODO: define path to spectrogram images/dataset
@@ -48,4 +76,25 @@ def split_dataset(data, labels):
     train_data, val_data, train_labels, val_labels = train_test_split(data, labels, test_size=0.2, random_state=42)
     return train_data, val_data, train_labels, val_labels
 
+def show_spectrogram_images(train_loader, n_images=4):
+    """
+    Displays a batch of spectrogram training images from the DataLoader.
+
+    Args:
+    - train_loader: DataLoader containing the spectrogram dataset.
+    - n_images: Number of images to display (default is 4).
+    """
+    # Get a batch of training data
+    images, _ = next(iter(train_loader))
+
+    # Make a grid from the batch
+    img_grid = torchvision.utils.make_grid(images[:n_images])
+
+    plt.figure(figsize=(10, 10))
+    # Convert the tensor to a format suitable for Matplotlib
+    np_img = img_grid.numpy()
+    plt.imshow(np.transpose(np_img, (1, 2, 0)), interpolation='nearest')
+    plt.title("Sample Spectrogram Images")
+    plt.axis('off')
+    plt.show()
 

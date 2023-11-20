@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torchvision.transforms as transforms  # For data preprocessing
 from torch.utils.data import DataLoader, TensorDataset
-from model_definition.algorithm_model import config, Algorithm_v0_1 # Import hyperparameter values
+from algorithm_model import config, Algorithm_v0_1 # Import hyperparameter values
 
 
 
