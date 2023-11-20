@@ -25,6 +25,8 @@ model.init_weights()
 
 # Load and preprocess your RF spectrum data
 
+
+
 # Define loss function and optimizer ### EDIT LATER
 criterion = nn.MSELoss()  # Example loss function for regression
 optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -51,4 +53,8 @@ for epoch in range(num_epochs):
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
+        
+
+        if data % 100 == 0:
+            print(f"Training loss (for 1 batch) at step {data}: {loss.detach().numpy():.4f}")
     # Validation and monitoring during training
