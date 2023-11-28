@@ -13,63 +13,20 @@ import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
 
-# This is a example spectrogram generation
+# Define a custom transform function
+class ResizeAndGrayscaleTransform:
+    def __init__(self, target_size=(224, 224)):
+        self.target_size = target_size
 
-# # Load audio file
-# y, sr = librosa.load('sir_duke_fast.ogg')
+    def __call__(self, img):
+        # Resize the image
+        img = img.resize(self.target_size)
 
-# # Compute spectrogram
-# spec = librosa.feature.melspectrogram(y=y, sr=sr)
+        # Convert to grayscale
+        img = img.convert("L")
 
-# # Convert power to decibels
-# spec_db = librosa.power_to_db(spec, ref=np.max)
-
-# # Plot spectrogram
-# fig, ax = plt.subplots(nrows = 1, ncols = 1)
-# img = librosa.display.specshow(spec_db, x_axis='time', y_axis='mel', ax = ax)
-# fig.colorbar(img, ax = ax, format='%+2.0f dB')
-# ax.set_title('Spectrogram')
-# fig.show()
-
-# # Save the figure as a TIFF file
-# plt.savefig('spectrogram.tiff', format='tiff')
-
-
-# Define the path to your spectrogram image
-# TODO: define path to spectrogram images/dataset
-image_path = 0
-# Ex: image_path = "path/to/your/spectrogram_image.png"
-
-# Initialize size variables
-# TODO: Set default sizes for NN inputs based on spectrogram resolution
-new_height = 256 # Placeholder height CHANGE AS NEEDED to spectrogram height
-new_width = 256 # Placeholder width CHANGE AS NEEDED to spectrogram width
-
-# Define the transformation pipeline
-transform = transforms.Compose([
-    # Random data augmentation (not sure if needed, example augments commented out for now)
-    # transforms.RandomRotation(degrees=15),      # Data augmentation: random rotation
-    # transforms.RandomHorizontalFlip(),         # Data augmentation: random horizontal flip
-    transforms.Resize((new_height, new_width)), # Resize to a specific size
-    transforms.Grayscale(num_output_channels=1),# Convert to grayscale if needed
-    transforms.ToTensor(),                       # Convert the image to a PyTorch tensor
-    # transforms.Normalize((0, 0, 0), (1, 1, 1))  # Normalize the image to have values in the range [0, 1]
-
-])
-
-# Load and preprocess the image
-image = Image.open(image_path)
-preprocessed_image = transform(image)
-# Find values and normalize image between 0,1 (Probable does not work this way)
-mean_value = preprocessed_image.mean()
-std_value = preprocessed_image.std()
-transforms.Normalize((mean_value,), (std_value,)) # Normalization if needed (Maybe put inside pipeline) (This also probably isnt correct)
-
-# Add a batch dimension to the image if needed
-preprocessed_image = preprocessed_image.unsqueeze(0)
-
-# Now, preprocessed_image is a PyTorch tensor ready to be input into your neural network
-
+        return img
+    
 # Split dataset if the dataset is not already split
 def split_dataset(data, labels):
     # Use train_test_split to split the dataset into training and validation sets
@@ -97,4 +54,26 @@ def show_spectrogram_images(train_loader, n_images=4):
     plt.title("Sample Spectrogram Images")
     plt.axis('off')
     plt.show()
+
+# Define The Transformation pipeline
+transform = transforms.Compose([
+    ResizeAndGrayscaleTransform(),  # Resize and convert to grayscale
+    transforms.ToTensor(),          # Convert image to PyTorch tensor
+    transforms.Normalize(mean=[0.5], std=[0.5])  # Normalize (adjust mean and std as needed)
+])
+
+# Define the path to your spectrogram image
+# TODO: define path to spectrogram images/dataset
+image_path = "/Users/cadeglauser/VSCose2Projects/ECE4900-Algorithm/project_root/spectrogram2.tiff"
+# Ex: image_path = "path/to/your/spectrogram_image.png"
+
+# Initialize size variables
+# TODO: Set default sizes for NN inputs based on spectrogram resolution
+
+# Load and preprocess the image
+image = Image.open(image_path)
+preprocessed_image = transform(image)
+
+# Add a batch dimension to the image if needed
+# preprocessed_image = preprocessed_image.unsqueeze(0)
 

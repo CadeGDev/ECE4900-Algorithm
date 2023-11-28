@@ -12,31 +12,41 @@ class Algorithm_v0_1(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_hidden_layers):
         super(Algorithm_v0_1, self).__init__()
 
-
-        # Input layer for a spectrogram with 2? channels (e.g., real and imaginary parts)
-        self.conv1 = nn.Conv2d(2, 16, kernel_size=3)
+        # Convolutional layers
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=3)
         self.pool = nn.MaxPool2d(2) # Max pooling over (2,2) window
         self.conv2 = nn.Conv2d(16, 32, kernel_size=3)
-        self.fc1 = nn.Linear(32 * 5 * 5, 128)  # Adjust the input size as needed
-        self.fc2 = nn.Linear(128, 128) # Num classes
-        # Define layers here
-        self.input_layer = nn.Linear(input_size, hidden_size)
-        self.relu = nn.ReLU()
-        self.output_layer = nn.Linear(hidden_size, output_size)
 
-        self.hidden_layers = nn.ModuleList()
+        # Dummy forward pass to determine size of convolutional output
+        dummy_input = torch.autograd.Variable(torch.zeros(1, 1, input_size, input_size))
+        output = self.conv_forward(dummy_input)
+        adjusted_output_size = output.view(-1).shape[0]
+
+        self.fc1 = nn.Linear(adjusted_output_size, 128)  # Adjust the input size as needed
+        self.fc2 = nn.Linear(128, output_size) # Num classes (30 now but likely changing to 50)
         for _ in range(num_hidden_layers):
             self.hidden_layers.append(nn.Linear(hidden_size, hidden_size))
             self.hidden_layers.append(nn.ReLU())
 
-    # Define the forward pass
-    def forward(self, x):
+    def conv_forward(self, x):
+        # Forward pass through your convolutional layers
         x = self.pool(F.relu(self.conv1(x)))
         x = self.pool(F.relu(self.conv2(x)))
-        x = x.view(-1, 32 * 5 * 5)  # Adjust the dimensions here
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
         return x
+
+    def forward(self, x):
+        x = self.conv_forward(x)
+        x = x.view(-1, self.num_flat_features(x))
+        x = F.relu(self.fc1(x))
+        x = F.sigmoid(self.fc2(x)) # Apply sigmoid activation function at the end
+        return x
+
+    def num_flat_features(self, x):
+        size = x.size()[1:]  # All dimensions except the batch dimension
+        num_features = 1
+        for s in size:
+            num_features *= s
+        return num_features
 
     # Initialize weights
     def init_weights(self):
@@ -48,7 +58,7 @@ class Algorithm_v0_1(nn.Module):
 
 # Define hyperparameters
 input_size = 10000 # = num of samples per time step * num of samples (Fs * num samples)
-output_size = 1 # if classificatio: = num of classifications, or if regression: = 1 (maybe multi-dimensional output) 
+output_size = 30 # if classificatio: = num of classifications, or if regression: = 1 (maybe multi-dimensional output) 
 hidden_size = 100
 num_hidden_layers = 5
 
@@ -56,7 +66,7 @@ num_hidden_layers = 5
 config = {
     "input_size": 10000,
     "hidden_size": 100,
-    "output_size": 1,
+    "output_size": 30,
     "num_hidden_layers": 5,
     "learning_rate": 0.001,
     "num_epochs": 50,
