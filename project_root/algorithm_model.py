@@ -17,21 +17,36 @@ class Algorithm_v0_1(nn.Module):
         self.pool = nn.MaxPool2d(2) # Max pooling over (2,2) window
         self.conv2 = nn.Conv2d(16, 32, kernel_size=3)
 
+        # Dropout layer after convolutional layers
+        # self.dropout_conv = nn.Dropout(0.5)
+
         # Dummy forward pass to determine size of convolutional output
         dummy_input = torch.autograd.Variable(torch.zeros(1, 1, input_size, input_size))
         output = self.conv_forward(dummy_input)
         adjusted_output_size = output.view(-1).shape[0]
 
         self.fc1 = nn.Linear(adjusted_output_size, 128)  # Adjust the input size as needed
+
+        # Dropout layer before the fully connected layer
+        # self.dropout_fc = nn.Dropout(0.5)
+
         self.fc2 = nn.Linear(128, output_size) # Num classes (30 now but likely changing to 50)
+
+        self.hidden_layers = nn.ModuleList()
+
         for _ in range(num_hidden_layers):
             self.hidden_layers.append(nn.Linear(hidden_size, hidden_size))
             self.hidden_layers.append(nn.ReLU())
 
+        # Output layer
+        self.output = nn.Linear(hidden_size, output_size)
+
     def conv_forward(self, x):
-        # Forward pass through your convolutional layers
+        # Forward pass through convolutional layers
         x = self.pool(F.relu(self.conv1(x)))
+        # x = self.dropout_conv(x)
         x = self.pool(F.relu(self.conv2(x)))
+        # x = self.dropout_conv(x)
         return x
 
     def forward(self, x):
@@ -39,6 +54,18 @@ class Algorithm_v0_1(nn.Module):
         x = x.view(-1, self.num_flat_features(x))
         x = F.relu(self.fc1(x))
         x = F.sigmoid(self.fc2(x)) # Apply sigmoid activation function at the end
+
+        # x = self.pool(F.relu(self.conv1(x)))
+        # x = self.dropout_conv(x)
+        # x = self.pool(F.relu(self.conv2(x)))
+        # x = self.dropout_conv(x)
+        
+        # # Flatten x for the fully connected layers
+        # x = x.view(-1, self.num_flat_features(x))
+        
+        # x = F.relu(self.fc1(x))
+        # x = self.dropout_fc(x)
+        # x = self.fc2(x)
         return x
 
     def num_flat_features(self, x):

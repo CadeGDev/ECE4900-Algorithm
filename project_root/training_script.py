@@ -6,8 +6,6 @@ import torchvision.transforms as transforms  # For data preprocessing
 from torch.utils.data import DataLoader, TensorDataset
 from algorithm_model import config, Algorithm_v0_1 # Import hyperparameter values
 
-
-
 # Extract hyperparameters
 input_size = config["input_size"]
 hidden_size = config["hidden_size"]
@@ -23,7 +21,7 @@ model = Algorithm_v0_1(input_size, hidden_size, output_size, num_hidden_layers)
 # Apply the custom weight initialization function to the model
 model.init_weights()
 
-# Load and preprocess your RF spectrum data
+# Load and preprocess RF spectrum data
 
 # Define loss function and optimizer ### EDIT LATER
 criterion = nn.MSELoss()  # Example loss function for regression
@@ -37,7 +35,7 @@ num_epochs = 50  # Adjust
 train_inputs = 0
 train_labels = 0
 
-# Assuming you have your data as tensors
+# Assuming data as tensors
 train_data = TensorDataset(train_inputs, train_labels)
 batch_size = 32  # Adjust the batch size as needed
 

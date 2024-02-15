@@ -26,10 +26,10 @@ def test_network(image_path, model):
 sample_image_path = "project_root/spectrogram2.tiff"
 
 # Initialize the neural network
-input_size = 224  # Replace with your actual input size
-hidden_size = 128  # Replace with your actual hidden size
-output_size = 10  # Replace with the number of classes or output features
-num_hidden_layers = 2  # Replace with your actual number of hidden layers
+input_size = 224
+hidden_size = 128
+output_size = 10 
+num_hidden_layers = 2 
 
 model = Algorithm_v0_1(input_size, hidden_size, output_size, num_hidden_layers)
 
