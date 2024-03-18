@@ -29,7 +29,7 @@ model.to(device)
 # Apply the custom weight initialization function to the model
 model.init_weights()
 
-# Load and preprocess your RF spectrum data
+# Load and preprocess RF spectrum data
 # TODO
 
 # Define loss function and optimizer ### EDIT LATER
@@ -81,44 +81,47 @@ def testAccuracy():
 
 # Training loop
 # TODO: convert to def, research DataLoader
-train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
-# loop over data repeatedly
-for epoch in range(num_epochs):
-    # track loss/accuracy
-    running_loss = 0.0
-    running_acc = 0.0
-    # for (inputs, labels) in train_loader:  # Iterate through training data
-    for i, (inputs, labels) in enumerate(train_loader, 0):
-        # init inputs and set to use GPU
-        images = Variable(images.to(device))
-        labels = Variable(labels.to(device))
-        # zero parameter gradiants
-        optimizer.zero_grad()
-        # predict using training data 
-        outputs = model(inputs)
-        # compute loss
-        loss = criterion(outputs, labels)
-        # back prop loss
-        loss.backward()
-        # adjust parameters
-        optimizer.step()
-        
-        # Validation and monitoring during training
-        # extract loss for loop iteration
-        running_loss += loss.item()    
-        if i % 100 == 99:    
-            # print every 100
-            print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
-            # reset loss
-            running_loss = 0.0
+def train(num_epochs):
 
-    # Compute average accuracy for this epoch
-    accuracy = testAccuracy()
-    print('For epoch', epoch+1,'the test accuracy over the whole test set is %d %%' % (accuracy))
-        
-    # we want to save the model if the accuracy is the best
-    if accuracy > best_accuracy:
-        saveModel()
-        best_accuracy = accuracy
+    best_accuracy = 0.0
+    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    # loop over data repeatedly
+    for epoch in range(num_epochs):
+        # track loss/accuracy
+        running_loss = 0.0
+        running_acc = 0.0
+        # for (inputs, labels) in train_loader:  # Iterate through training data
+        for i, (inputs, labels) in enumerate(train_loader, 0):
+            # init inputs and set to use GPU
+            images = Variable(images.to(device))
+            labels = Variable(labels.to(device))
+            # zero parameter gradiants
+            optimizer.zero_grad()
+            # predict using training data 
+            outputs = model(inputs)
+            # compute loss
+            loss = criterion(outputs, labels)
+            # back prop loss
+            loss.backward()
+            # adjust parameters
+            optimizer.step()
+            
+            # Validation and monitoring during training
+            # extract loss for loop iteration
+            running_loss += loss.item()    
+            if i % 100 == 99:    
+                # print every 100
+                print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
+                # reset loss
+                running_loss = 0.0
+
+        # Compute average accuracy for this epoch
+        accuracy = testAccuracy()
+        print('For epoch', epoch+1,'the test accuracy over the whole test set is %d %%' % (accuracy))
+            
+        # we want to save the model if the accuracy is the best
+        if accuracy > best_accuracy:
+            saveModel()
+            best_accuracy = accuracy
 
             
