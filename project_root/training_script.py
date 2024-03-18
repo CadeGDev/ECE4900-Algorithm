@@ -1,4 +1,5 @@
 # Import statements
+import time
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -7,6 +8,8 @@ import torchvision.transforms as transforms  # For data preprocessing
 import torch.cuda
 from torch.utils.data import DataLoader, TensorDataset
 from model_definition.algorithm_model import config, Algorithm_v0_1 # Import hyperparameter values
+
+start = time.perf_counter()
 
 # Extract hyperparameters
 input_size = config["input_size"]
@@ -29,16 +32,10 @@ model.to(device)
 # Apply the custom weight initialization function to the model
 model.init_weights()
 
-# Load and preprocess RF spectrum data
-# TODO
-
-# Define loss function and optimizer ### EDIT LATER
-#criterion = nn.MSELoss()  # Example loss function for regression
+# Define loss function and optimizer
 criterion = nn.CrossEntropyLoss() 
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-
-# Training
 # Variable initializations
 num_epochs = 50  # Adjust
 
@@ -50,6 +47,12 @@ train_labels = 0
 # Assuming you have your data as tensors
 train_data = TensorDataset(train_inputs, train_labels)
 batch_size = 32  # Adjust the batch size as needed
+
+train_loader = DataLoader(train_data, batch_size = batch_size, shuffle = True) 
+
+#TODO: define validation and test sets
+validate_loader = DataLoader(validate_data, batch_size = 1) 
+test_loader = DataLoader(test_data, batch_size = 1)
 
 # Save training model
 def saveModel():
@@ -80,17 +83,15 @@ def testAccuracy():
 
 
 # Training loop
-# TODO: convert to def, research DataLoader
 def train(num_epochs):
-
     best_accuracy = 0.0
-    train_loader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+
     # loop over data repeatedly
     for epoch in range(num_epochs):
         # track loss/accuracy
         running_loss = 0.0
         running_acc = 0.0
-        # for (inputs, labels) in train_loader:  # Iterate through training data
+        
         for i, (inputs, labels) in enumerate(train_loader, 0):
             # init inputs and set to use GPU
             images = Variable(images.to(device))
@@ -109,19 +110,24 @@ def train(num_epochs):
             # Validation and monitoring during training
             # extract loss for loop iteration
             running_loss += loss.item()    
-            if i % 100 == 99:    
-                # print every 100
+            if i % 30 == 0:    
+                # print every 30
                 print('[%d, %5d] loss: %.3f' % (epoch + 1, i + 1, running_loss / 100))
                 # reset loss
                 running_loss = 0.0
 
         # Compute average accuracy for this epoch
         accuracy = testAccuracy()
-        print('For epoch', epoch+1,'the test accuracy over the whole test set is %d %%' % (accuracy))
-            
+        
+        print(f'Completed training batch {epoch}, Accuracy is {accuracy}')    
+
         # we want to save the model if the accuracy is the best
         if accuracy > best_accuracy:
             saveModel()
             best_accuracy = accuracy
+          
+num_epochs = 100
+train(num_epochs)
 
-            
+end = time.perf_counter() - start
+print(f'Training Latency: {format(end)}s for {num_epochs} epochs')
