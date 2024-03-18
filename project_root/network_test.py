@@ -1,6 +1,6 @@
 import torch
 from PIL import Image
-from data_preprocessing import ResizeAndGrayscaleTransform, transform
+from data_preprocessing import preprocessing_transforms as transform
 from algorithm_model import Algorithm_v0_1
 
 def load_image(image_path):

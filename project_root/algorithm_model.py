@@ -110,4 +110,25 @@ num_epochs = config["num_epochs"]
 batch_size = config["batch_size"]
 
 
+#  LATER! - Spectral flux density layer
+# class SpectralFluxLayer(nn.Module):
+#     def __init__(self):
+#         super(SpectralFluxLayer, self).__init__()
 
+#     def forward(self, spectrogram):
+#         """
+#         Compute the spectral flux as part of the forward pass.
+
+#         Args:
+#         - spectrogram: A PyTorch tensor of shape (batch_size, channels, freq_bins, time_steps).
+
+#         Returns:
+#         - spectral_flux: A PyTorch tensor of shape (batch_size, channels, 1, time_steps) representing the spectral flux for each time step.
+#         """
+#         # Calculate squared difference between adjacent time steps
+#         flux = torch.sum((torch.diff(spectrogram, dim=-1) ** 2), dim=2, keepdim=True)
+        
+#         # Take the square root to get the final spectral flux
+#         spectral_flux = torch.sqrt(flux)
+        
+#         return spectral_flux
