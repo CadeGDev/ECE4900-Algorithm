@@ -16,8 +16,8 @@ from torch.autograd import Variable
 start = time.perf_counter()
 
 # Define the path to dataset and labels
-image_folder = "C:\Users\zande\OneDrive\Desktop\Fall_2023\SeniorThesis\Continuous"
-labels_csv = "C:\Users\zande\OneDrive\Desktop\Fall_2023\SeniorThesis\Continuous\spectrogram_labels.csv"
+image_folder = 'project_root/Continuous'
+labels_csv = 'project_root/Continuous/spectrogram_labels.csv'
 
 # Extract hyperparameters
 input_size = config["input_size"]
@@ -27,15 +27,6 @@ num_hidden_layers = config["num_hidden_layers"]
 learning_rate = config["learning_rate"]
 num_epochs = config["num_epochs"]
 batch_size = config["batch_size"]
-
-num_workers = 4  # Number of subprocesses for data loading
-
-# Initialize the dataset and data loader
-train_dataset = SpectrogramDataset(csv_file=labels_csv, root_dir=image_folder, subset='train')
-test_dataset = SpectrogramDataset(csv_file=labels_csv, root_dir=image_folder, subset='test')
-
-dataloader_train = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-dataloader_test = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
 # define GPU device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -48,6 +39,15 @@ model = Algorithm_v0_1(input_size, hidden_size, output_size, num_hidden_layers)
 model.to(device)
 # Apply the custom weight initialization function to the model
 model.init_weights()
+
+num_workers = 4  # Number of subprocesses for data loading
+
+# Initialize the dataset and data loader
+train_dataset = SpectrogramDataset(csv_file=labels_csv, root_dir=image_folder, subset='train')
+test_dataset = SpectrogramDataset(csv_file=labels_csv, root_dir=image_folder, subset='test')
+
+dataloader_train = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+dataloader_test = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
 # Define loss function and optimizer
 criterion = nn.MSELoss()  # Example loss function for regression
@@ -92,7 +92,7 @@ def train(num_epochs):
         running_loss = 0.0
         running_acc = 0.0
         
-        for batch in dataloader_train:
+        for i,batch in enumerate(dataloader_train):
             # init inputs and set to use GPU
             images, labels = batch['image'], batch['label']
             #images = Variable(images.to(device))
@@ -123,9 +123,10 @@ def train(num_epochs):
         if accuracy > best_accuracy:
             saveModel()
             best_accuracy = accuracy
-          
-num_epochs = 10
-train(num_epochs)
-print("Finished Training")
-end = time.perf_counter() - start
-print(f"Training Latency: {format(end)}s for {num_epochs} epochs")
+
+if __name__ == "__main__": 
+    num_epochs = 10
+    train(num_epochs) 
+    print('Finished Training\n') 
+    end = time.perf_counter() - start
+    print(f"Training Latency: {format(end)}s for {num_epochs} epochs")

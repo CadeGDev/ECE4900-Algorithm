@@ -77,11 +77,11 @@ class Algorithm_v0_1(nn.Module):
 
     # Initialize weights
     def init_weights(self):
-        for m in self.modules:
+        #for m in self.modules:
         # Using He initialization for now (Good for ReLU activations)
-            if isinstance(m, nn.Linear):
-                nn.init.kaiming_normal_(m.weight)
-                nn.init.constant_(m.bias, 0)
+            if isinstance(self, nn.Linear):
+                nn.init.kaiming_normal_(self.weight)
+                nn.init.constant_(self.bias, 0)
 
 # Define hyperparameters
 input_size = 10000 # = num of samples per time step * num of samples (Fs * num samples)
