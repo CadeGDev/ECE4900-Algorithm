@@ -25,7 +25,7 @@ class Algorithm_v0_1(nn.Module):
         output = self.conv_forward(dummy_input)
         adjusted_output_size = output.view(-1).shape[0]
 
-        self.fc1 = nn.Linear(adjusted_output_size, 128)  # Adjust the input size as needed
+        self.fc1 = nn.Linear(adjusted_output_size, 12)  # Adjust the input size as needed
 
         # Dropout layer before the fully connected layer
         # self.dropout_fc = nn.Dropout(0.5)
@@ -108,6 +108,5 @@ num_hidden_layers = config["num_hidden_layers"]
 learning_rate = config["learning_rate"]
 num_epochs = config["num_epochs"]
 batch_size = config["batch_size"]
-
 
 
