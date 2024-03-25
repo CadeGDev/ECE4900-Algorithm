@@ -24,6 +24,7 @@ batch_size = config["batch_size"]
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print("model will use: " + device)
 
+
 # Create instance of algorithm model
 model = Algorithm_v0_1(input_size, hidden_size, output_size, num_hidden_layers)
 # Set model to use GPU 
@@ -32,9 +33,14 @@ model.to(device)
 # Apply the custom weight initialization function to the model
 model.init_weights()
 
-# Define loss function and optimizer
-criterion = nn.CrossEntropyLoss() 
+# Load and preprocess your RF spectrum data
+# TODO
+
+# Define loss function and optimizer ### EDIT LATER
+criterion = nn.MSELoss()  # Example loss function for regression
+#criterion = nn.CrossEntropyLoss() 
 optimizer = optim.Adam(model.parameters(), lr=0.001)
+#optimizer = SGD(model.parameters(), lr = 0.001)
 
 # Variable initializations
 num_epochs = 50  # Adjust
