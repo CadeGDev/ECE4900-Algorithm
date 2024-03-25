@@ -28,6 +28,15 @@ learning_rate = config["learning_rate"]
 num_epochs = config["num_epochs"]
 batch_size = config["batch_size"]
 
+num_workers = 4  # Number of subprocesses for data loading
+
+# Initialize the dataset and data loader
+train_dataset = SpectrogramDataset(csv_file=labels_csv, root_dir=image_folder, subset='train')
+test_dataset = SpectrogramDataset(csv_file=labels_csv, root_dir=image_folder, subset='test')
+
+dataloader_train = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
+dataloader_test = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
+
 # define GPU device
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(f"Model will use: {device}")
@@ -39,15 +48,6 @@ model = Algorithm_v0_1(input_size, hidden_size, output_size, num_hidden_layers)
 model.to(device)
 # Apply the custom weight initialization function to the model
 model.init_weights()
-
-num_workers = 4  # Number of subprocesses for data loading
-
-# Initialize the dataset and data loader
-train_dataset = SpectrogramDataset(csv_file=labels_csv, root_dir=image_folder, subset='train')
-test_dataset = SpectrogramDataset(csv_file=labels_csv, root_dir=image_folder, subset='test')
-
-dataloader_train = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers)
-dataloader_test = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers)
 
 # Define loss function and optimizer
 criterion = nn.MSELoss()  # Example loss function for regression
