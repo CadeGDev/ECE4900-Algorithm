@@ -17,6 +17,13 @@ from torch.autograd import Variable
 def setup():
     """
     This function contains the setup and initialization of the training/testing data, and the algorithm model 
+
+    Returns: 
+        model: custom algorithm model extracted from algorithm_model.py
+        dataloader_train: dataLoader containg training images and labels
+        dataloader_test: dataLoader containg testing images and labels
+        criterion: loss function used to train algorithm 
+        optimizer: optimizer function used to optimize algorithm
     """
     # Define the path to dataset and labels
     image_folder = 'project_root/Continuous'
