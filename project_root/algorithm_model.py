@@ -8,106 +8,88 @@ import torch.nn.functional as F
 
 
 # Define neural network architecture
-class Algorithm_v0_1(nn.Module):
+
+class SelfAttention(nn.Module):
+    def __init__(self, in_channels):
+        super(SelfAttention, self).__init__()
+        self.query_conv = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
+        self.key_conv = nn.Conv2d(in_channels, in_channels // 8, kernel_size=1)
+        self.value_conv = nn.Conv2d(in_channels, in_channels, kernel_size=1)
+        self.softmax = nn.Softmax(dim=-1)
+
+    def forward(self, x):
+        batch_size, C, height, width = x.size()
+        query = self.query_conv(x).view(batch_size, -1, height * width).permute(0, 2, 1)  # B X N X C
+        key = self.key_conv(x).view(batch_size, -1, height * width)  # B X C X N
+        value = self.value_conv(x).view(batch_size, -1, height * width)  # B X C X N
+
+        attention = self.softmax(torch.bmm(query, key))  # B X N X N
+        out = torch.bmm(value, attention.permute(0, 2, 1))
+        out = out.view(batch_size, C, height, width)
+
+        return out
+
+
+class Algorithm(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_hidden_layers):
-        super(Algorithm_v0_1, self).__init__()
+        super(Algorithm, self).__init__()
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=5, padding=1)
+        self.pool = nn.MaxPool2d(2)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, padding=1)
+        self.attention = SelfAttention(32)  # Adding the self-attention layer
 
-        # Convolutional layers
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3)
-        self.pool = nn.MaxPool2d(2) # Max pooling over (2,2) window
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3)
-
-        # Dropout layer after convolutional layers
-        # self.dropout_conv = nn.Dropout(0.5)
-
-        # Dummy forward pass to determine size of convolutional output
-        dummy_input = torch.autograd.Variable(torch.zeros(1, 1, input_size, input_size))
-        output = self.conv_forward(dummy_input)
-        adjusted_output_size = output.view(-1).shape[0]
-
-        self.fc1 = nn.Linear(adjusted_output_size, 128)  # Adjust the input size as needed
-
-        # Dropout layer before the fully connected layer
-        # self.dropout_fc = nn.Dropout(0.5)
-
-        self.fc2 = nn.Linear(128, output_size) # Num classes (30 now but likely changing to 50)
-
-        self.hidden_layers = nn.ModuleList()
-
-        for _ in range(num_hidden_layers):
-            self.hidden_layers.append(nn.Linear(hidden_size, hidden_size))
-            self.hidden_layers.append(nn.ReLU())
-
-        # Output layer
+        # Rest of the model architecture remains the same
+        self._to_linear = None
+        self._compute_flat_size(input_size)
+        self.fc1 = nn.Linear(self._to_linear, hidden_size)
+        self.hidden_layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(num_hidden_layers)])
         self.output = nn.Linear(hidden_size, output_size)
 
-    def conv_forward(self, x):
-        # Forward pass through convolutional layers
+    def _compute_flat_size(self, input_size):
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, 1, input_size[0], input_size[1])
+            output = self._conv_output_size(dummy_input)
+            self._to_linear = output.numel()
+
+    def _conv_output_size(self, x):
         x = self.pool(F.relu(self.conv1(x)))
-        # x = self.dropout_conv(x)
         x = self.pool(F.relu(self.conv2(x)))
-        # x = self.dropout_conv(x)
+        x = self.attention(x)  # Apply attention
         return x
 
     def forward(self, x):
-        x = self.conv_forward(x)
-        x = x.view(-1, self.num_flat_features(x))
+        # Apply the convolutional and attention layers
+        x = self._conv_output_size(x)  # Includes convolution and attention layers
+        x = x.view(-1, self._to_linear)  # Flatten the output for the fully connected layer
+        
+        # Apply the first fully connected layer and activation
         x = F.relu(self.fc1(x))
-        x = F.sigmoid(self.fc2(x)) # Apply sigmoid activation function at the end
-
-        # x = self.pool(F.relu(self.conv1(x)))
-        # x = self.dropout_conv(x)
-        # x = self.pool(F.relu(self.conv2(x)))
-        # x = self.dropout_conv(x)
         
-        # # Flatten x for the fully connected layers
-        # x = x.view(-1, self.num_flat_features(x))
+        # Process through the hidden layers
+        for layer in self.hidden_layers:
+            x = F.relu(layer(x))
         
-        # x = F.relu(self.fc1(x))
-        # x = self.dropout_fc(x)
-        # x = self.fc2(x)
-        return x
+        # Final output layer
+        x = self.output(x)
+        return torch.sigmoid(x)  # For multi-label classification
 
-    def num_flat_features(self, x):
-        size = x.size()[1:]  # All dimensions except the batch dimension
-        num_features = 1
-        for s in size:
-            num_features *= s
-        return num_features
-
-    # Initialize weights
     def init_weights(self):
-        for m in self.modules:
-        # Using He initialization for now (Good for ReLU activations)
-            if isinstance(m, nn.Linear):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 nn.init.kaiming_normal_(m.weight)
-                nn.init.constant_(m.bias, 0)
+                m.bias.data.fill_(0.01)
 
-# Define hyperparameters
-input_size = 10000 # = num of samples per time step * num of samples (Fs * num samples)
-output_size = 30 # if classificatio: = num of classifications, or if regression: = 1 (maybe multi-dimensional output) 
-hidden_size = 100
-num_hidden_layers = 5
-
-# Create config variables inherited by other classes
+# Update the config
 config = {
-    "input_size": 10000,
+    "input_size": (600, 585),  # Images are 600x585 pixels
     "hidden_size": 100,
-    "output_size": 30,
+    "output_size": 50,  # 50 separate bands to classify
     "num_hidden_layers": 5,
-    "learning_rate": 0.001,
-    "num_epochs": 50,
-    "batch_size": 32
+    "learning_rate": 0.01,
+    "num_epochs": 5,
+    "batch_size": 20,
+    "num_workers": 4
 }
-
-# Extract hyperparameters
-input_size = config["input_size"]
-hidden_size = config["hidden_size"]
-output_size = config["output_size"]
-num_hidden_layers = config["num_hidden_layers"]
-learning_rate = config["learning_rate"]
-num_epochs = config["num_epochs"]
-batch_size = config["batch_size"]
 
 
 #  LATER! - Spectral flux density layer
