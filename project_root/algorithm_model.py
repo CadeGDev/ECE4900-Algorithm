@@ -11,102 +11,80 @@ import torch.nn.functional as F
 class Algorithm_v0_1(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_hidden_layers):
         super(Algorithm_v0_1, self).__init__()
+        output_size = 50  # There are 50 separate bands to classify
 
         # Convolutional layers
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3)
-        self.pool = nn.MaxPool2d(2) # Max pooling over (2,2) window
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3)
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
+        self.pool = nn.MaxPool2d(2)  # Max pooling over a (2,2) window
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
 
-        # Dropout layer after convolutional layers
-        # self.dropout_conv = nn.Dropout(0.5)
+        # Dynamically compute the flattened size after convolutions
+        self._to_linear = None
+        self._compute_flat_size(input_size)
 
-        # Dummy forward pass to determine size of convolutional output
-        dummy_input = torch.autograd.Variable(torch.zeros(1, 1, input_size, input_size))
-        output = self.conv_forward(dummy_input)
-        adjusted_output_size = output.view(-1).shape[0]
-
-        self.fc1 = nn.Linear(adjusted_output_size, 12)  # Adjust the input size as needed
-
-        # Dropout layer before the fully connected layer
-        # self.dropout_fc = nn.Dropout(0.5)
-
-        self.fc2 = nn.Linear(128, output_size) # Num classes (30 now but likely changing to 50)
-
-        self.hidden_layers = nn.ModuleList()
-
-        for _ in range(num_hidden_layers):
-            self.hidden_layers.append(nn.Linear(hidden_size, hidden_size))
-            self.hidden_layers.append(nn.ReLU())
-
-        # Output layer
+        # Fully connected layers
+        self.fc1 = nn.Linear(self._to_linear, hidden_size)
+        self.hidden_layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(num_hidden_layers)])
         self.output = nn.Linear(hidden_size, output_size)
 
-    def conv_forward(self, x):
-        # Forward pass through convolutional layers
+    def _compute_flat_size(self, input_size):
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, 1, input_size[0], input_size[1])  # use the actual image size here
+            output = self._conv_output_size(dummy_input)
+            self._to_linear = output.numel()  # compute the total number of resulting features
+
+    def _conv_output_size(self, x):
         x = self.pool(F.relu(self.conv1(x)))
-        # x = self.dropout_conv(x)
         x = self.pool(F.relu(self.conv2(x)))
-        # x = self.dropout_conv(x)
         return x
 
     def forward(self, x):
-        x = self.conv_forward(x)
-        x = x.view(-1, self.num_flat_features(x))
+        x = self._conv_output_size(x)
+        x = x.view(-1, self._to_linear)
         x = F.relu(self.fc1(x))
-        x = F.sigmoid(self.fc2(x)) # Apply sigmoid activation function at the end
+        for layer in self.hidden_layers:
+            x = F.relu(layer(x))
+        x = self.output(x)
+        return torch.sigmoid(x)  # Use sigmoid for multi-label classification
 
-        # x = self.pool(F.relu(self.conv1(x)))
-        # x = self.dropout_conv(x)
-        # x = self.pool(F.relu(self.conv2(x)))
-        # x = self.dropout_conv(x)
-        
-        # # Flatten x for the fully connected layers
-        # x = x.view(-1, self.num_flat_features(x))
-        
-        # x = F.relu(self.fc1(x))
-        # x = self.dropout_fc(x)
-        # x = self.fc2(x)
-        return x
-
-    def num_flat_features(self, x):
-        size = x.size()[1:]  # All dimensions except the batch dimension
-        num_features = 1
-        for s in size:
-            num_features *= s
-        return num_features
-
-    # Initialize weights
     def init_weights(self):
-        #for m in self.modules:
-        # Using He initialization for now (Good for ReLU activations)
-            if isinstance(self, nn.Linear):
-                nn.init.kaiming_normal_(self.weight)
-                nn.init.constant_(self.bias, 0)
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight)
+                m.bias.data.fill_(0.01)
 
-# Define hyperparameters
-input_size = 10000 # = num of samples per time step * num of samples (Fs * num samples)
-output_size = 30 # if classificatio: = num of classifications, or if regression: = 1 (maybe multi-dimensional output) 
-hidden_size = 100
-num_hidden_layers = 5
-
-# Create config variables inherited by other classes
+# Update the config
 config = {
-    "input_size": 10000,
+    "input_size": (600, 585),  # Images are 600x585 pixels
     "hidden_size": 100,
-    "output_size": 30,
+    "output_size": 50,  # 50 separate bands to classify
     "num_hidden_layers": 5,
-    "learning_rate": 0.001,
-    "num_epochs": 50,
-    "batch_size": 32
+    "learning_rate": 0.01,
+    "num_epochs": 5,
+    "batch_size": 20,
+    "num_workers": 4
 }
 
-# Extract hyperparameters
-input_size = config["input_size"]
-hidden_size = config["hidden_size"]
-output_size = config["output_size"]
-num_hidden_layers = config["num_hidden_layers"]
-learning_rate = config["learning_rate"]
-num_epochs = config["num_epochs"]
-batch_size = config["batch_size"]
 
+#  LATER! - Spectral flux density layer
+# class SpectralFluxLayer(nn.Module):
+#     def __init__(self):
+#         super(SpectralFluxLayer, self).__init__()
 
+#     def forward(self, spectrogram):
+#         """
+#         Compute the spectral flux as part of the forward pass.
+
+#         Args:
+#         - spectrogram: A PyTorch tensor of shape (batch_size, channels, freq_bins, time_steps).
+
+#         Returns:
+#         - spectral_flux: A PyTorch tensor of shape (batch_size, channels, 1, time_steps) representing the spectral flux for each time step.
+#         """
+#         # Calculate squared difference between adjacent time steps
+#         flux = torch.sum((torch.diff(spectrogram, dim=-1) ** 2), dim=2, keepdim=True)
+        
+#         # Take the square root to get the final spectral flux
+#         spectral_flux = torch.sqrt(flux)
+        
+#         return spectral_flux
