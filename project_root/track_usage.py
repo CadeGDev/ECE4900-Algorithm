@@ -16,6 +16,9 @@ def get_gpu_usage():
     info = pynvml.nvmlDeviceGetUtilizationRates(handle)
     return info.gpu
 
+def get_RAM_usage():
+    return psutil.virtual_memory().percent
+
 # Function to run the target Python script with an integer argument
 def run_target_script(script_path, argument):
     return subprocess.Popen(['python', script_path, str(argument)])
@@ -40,17 +43,20 @@ if __name__ == "__main__":
     # Initialize cumulative CPU and GPU usage
     total_cpu_usage = 0
     total_gpu_usage = 0
+    total_ram_usage = 0
     count = 0
 
     # Monitoring loop
     while True:
         # Get CPU and GPU usage
         cpu_usage = get_cpu_usage()
-        gpu_usage = get_gpu_usage()
+        #gpu_usage = get_gpu_usage()
+        ram_usage = get_RAM_usage()
 
         # Add CPU and GPU usage to the cumulative total
         total_cpu_usage += cpu_usage
-        total_gpu_usage += gpu_usage
+        #total_gpu_usage += gpu_usage
+        total_ram_usage += ram_usage
         count += 1
 
         # Check if the target script has terminated
@@ -63,10 +69,12 @@ if __name__ == "__main__":
     # Calculate average CPU and GPU usage
     average_cpu_usage = total_cpu_usage / count
     average_gpu_usage = total_gpu_usage / count
+    average_ram_usage = total_ram_usage / count
 
     # Print the average CPU and GPU usage at the end
     print(f"Average CPU Usage: {average_cpu_usage}%")
     print(f"Average GPU Usage: {average_gpu_usage}%")
+    print(f"Average RAM Usage: {average_ram_usage}%")
 
     # Calculate total runtime of the target script
     end_time = time.time()
