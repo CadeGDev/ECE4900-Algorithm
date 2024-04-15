@@ -10,8 +10,8 @@ import time
 import torch.cuda
 from torch.autograd import Variable
 
-def save_model(model, path="./TrainingModelV1.pth"):
-    torch.save(model.state_dict(), path)
+def save_model(model, path="./TrainingModelV1.pt"):
+    torch.save(model, path)
 
 def test_accuracy(model, dataloader, device):
     model.eval()  # Set model to evaluation mode
@@ -86,20 +86,20 @@ def main():
     # Preprocess the dataset (Done only once)
     # COMMENT THIS OUT AFTER FIRST TIME PREPROCESSING
     # Training dataset
-    # preprocessorTrain = DatasetPreprocessor(csv_file,
-    #                                 root_dir,
-    #                                 train_output_file,
-    #                                 subset='train',
-    #                                 threshold=0.5)
-    # preprocessorTrain.process_and_save()
+    preprocessorTrain = DatasetPreprocessor(csv_file,
+                                    root_dir,
+                                    train_output_file,
+                                    subset='train',
+                                    threshold=0.5)
+    preprocessorTrain.process_and_save()
 
-    # # Testing dataset
-    # preprocessorTest = DatasetPreprocessor(csv_file,
-    #                                 root_dir,
-    #                                 test_output_file,
-    #                                 subset='test',
-    #                                 threshold=0.5)
-    # preprocessorTest.process_and_save()
+    # Testing dataset
+    preprocessorTest = DatasetPreprocessor(csv_file,
+                                    root_dir,
+                                    test_output_file,
+                                    subset='test',
+                                    threshold=0.5)
+    preprocessorTest.process_and_save()
 
     # Load the preprocessed datasets
     train_dataset = torch.load(train_output_file)

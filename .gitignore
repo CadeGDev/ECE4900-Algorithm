@@ -194,3 +194,4 @@ AlgoPreviousVersions/2023.03.26_working/project_root/data/processed_TestDataset1
 AlgoPreviousVersions/2023.03.26_working/project_root/data/processed_TrainDataset.pt
 AlgoPreviousVersions/2023.03.26_working/project_root/data/processed_TrainDataset100.pt
 AlgoPreviousVersions/2023.03.26_working/project_root/notes/plans_text_files/data_preprocessing_plans.txt
+TrainingModelV1.pt

@@ -82,12 +82,12 @@ class DatasetPreprocessor:
             # Load and process image here, then append to processed_images and label_vectors
             center_frequency = int(row['Frequency(MHz)']) - 1  # Adjusted for 0 indexing
 
-            # Initialize the label vector with ones (assuming whitespace)
-            one_hot_label = np.ones(num_bands)
+            # Initialize the label vector with zeros (no signal by default)
+            one_hot_label = np.zeros(num_bands)
 
-            # Mark the center and adjacent bands as signal (not whitespace)
-            for j in range(max(0, center_frequency - 2), min(num_bands, center_frequency + 3)):
-                one_hot_label[j] = 0
+            # Mark the center and adjacent bands as signal
+            for j in range(max(0, center_frequency - 1), min(num_bands, center_frequency + 2)):
+                one_hot_label[j] = 1
 
             with Image.open(img_path) as img:
                 transformed_img = self.transformation_pipeline.transform(img)

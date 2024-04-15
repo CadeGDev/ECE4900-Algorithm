@@ -25,20 +25,20 @@ class TransformationPipeline:
         if self.crop_box is not None:
             img = TF.crop(img, *self.crop_box)
         img = TF.to_tensor(img)
-        img = self.apply_binary_mask(img, self.threshold)
+        # img = self.apply_binary_mask(img, self.threshold)
         img = TF.resize(img, self.resize_dims)
         img = TF.rgb_to_grayscale(img)
         return img
 
-    @staticmethod
-    def apply_binary_mask(tensor, threshold):
-        return torch.where(tensor > threshold, torch.ones_like(tensor), torch.zeros_like(tensor))
+    # @staticmethod
+    # def apply_binary_mask(tensor, threshold):
+    #     return torch.where(tensor > threshold, torch.ones_like(tensor), torch.zeros_like(tensor))
 
 # Initialize the transformation pipeline with desired parameters
 transformation_pipeline = TransformationPipeline()
 
 # Load your spectrogram image file
-spectrogram_image_path = '/Users/cadeglauser/VSCose2Projects/ECE4900-Algorithm/project_root/Continuous/spectrogram17.png'
+spectrogram_image_path = '/Users/cadeglauser/VSCose2Projects/ECE4900-Algorithm/project_root/Continuous/spectrogram4172.png'
 spectrogram_image = Image.open(spectrogram_image_path)
 
 # Apply transformations
