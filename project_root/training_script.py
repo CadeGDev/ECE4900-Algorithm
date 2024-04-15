@@ -10,8 +10,26 @@ import time
 import torch.cuda
 from torch.autograd import Variable
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+def show_images(images, labels, num_images=5):
+    images = images.to('cpu').numpy()  # Convert images to NumPy arrays for visualization
+    labels = labels.to('cpu').numpy()
+    
+    fig, axes = plt.subplots(1, num_images, figsize=(15, 3))
+    for i in range(num_images):
+        ax = axes[i]
+        img = np.transpose(images[i], (1, 2, 0))  # Convert from (C, H, W) to (H, W, C)
+        img = (img - img.min()) / (img.max() - img.min())  # Normalize to [0,1] for display
+        ax.imshow(img, cmap='gray')
+        ax.axis('off')
+        ax.set_title(f'Label: {labels[i]}')
+    plt.show()
+
+
 def save_model(model, path="./TrainingModelV1.pt"):
-    torch.save(model, path)
+    torch.save(model.state_dict(), path)
 
 def test_accuracy(model, dataloader, device):
     model.eval()  # Set model to evaluation mode
@@ -23,13 +41,9 @@ def test_accuracy(model, dataloader, device):
             images = images.to(device)
             labels = labels.to(device)
             outputs = model(images)
-            # Apply sigmoid to convert logits to probabilities
-            probs = torch.sigmoid(outputs)
-            # Convert probabilities to binary predictions
-            preds = (probs > 0.5).float()
-            # Update total_correct by comparing predictions with true labels
-            total_correct += (preds == labels).sum().item()
-            total_samples += labels.numel()  # Update total number of label comparisons
+            _, preds = torch.max(outputs, 1)  # Get the indices of the max logit which are the predicted classes
+            total_correct += (preds == labels).sum().item()  # Compare predictions with true labels
+            total_samples += labels.size(0)  # Update total number of samples processed
     
     accuracy = 100 * total_correct / total_samples
     model.train()  # Set model back to training mode
@@ -40,11 +54,12 @@ def train(model, num_epochs, train_dataloader, test_dataloader, criterion, optim
     print("Begin training ...")
     for epoch in range(num_epochs):
         running_loss = 0.0
-        
-        for images, labels in train_dataloader:
-            # print(images.shape, labels.shape)
+        for i, (images, labels) in enumerate(train_dataloader):
             images = images.to(device)
             labels = labels.to(device)
+            
+            # if i == 0:  # Visualize the first batch of each epoch
+            #     show_images(images, labels)
             
             optimizer.zero_grad()
             outputs = model(images)
@@ -78,8 +93,8 @@ def main():
     num_workers = config["num_workers"]
 
     # Dataset file paths
-    csv_file = "/Users/cadeglauser/VSCose2Projects/Datasets/Cont100/spectrogram_labels.csv"
-    root_dir = "/Users/cadeglauser/VSCose2Projects/Datasets/Cont100"
+    csv_file = "/Users/cadeglauser/VSCose2Projects/Datasets/Continuous/spectrogram_labels.csv"
+    root_dir = "/Users/cadeglauser/VSCose2Projects/Datasets/Continuous"
     train_output_file = "/Users/cadeglauser/VSCose2Projects/ECE4900-Algorithm/project_root/data/processed_TrainDataset100.pt"
     test_output_file = "/Users/cadeglauser/VSCose2Projects/ECE4900-Algorithm/project_root/data/processed_TestDataset100.pt"
 
@@ -90,7 +105,7 @@ def main():
                                     root_dir,
                                     train_output_file,
                                     subset='train',
-                                    threshold=0.5)
+                                    threshold=0.2)
     preprocessorTrain.process_and_save()
 
     # Testing dataset
@@ -98,7 +113,7 @@ def main():
                                     root_dir,
                                     test_output_file,
                                     subset='test',
-                                    threshold=0.5)
+                                    threshold=0.2)
     preprocessorTest.process_and_save()
 
     # Load the preprocessed datasets
@@ -122,7 +137,7 @@ def main():
     model.init_weights()
 
     # Define loss function and optimizer
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=config['learning_rate'])
 
     # Train the model

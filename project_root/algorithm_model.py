@@ -14,9 +14,9 @@ class Algorithm(nn.Module):
         output_size = 50  # There are 50 separate bands to classify
 
         # Convolutional layers
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=5, padding=1)
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
         self.pool = nn.MaxPool2d(2)  # Max pooling over a (2,2) window
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, padding=1)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
 
         # Dynamically compute the flattened size after convolutions
         self._to_linear = None
@@ -35,17 +35,21 @@ class Algorithm(nn.Module):
 
     def _conv_output_size(self, x):
         x = self.pool(F.relu(self.conv1(x)))
+        # print(x.size())  # Debug print to check size after conv1
         x = self.pool(F.relu(self.conv2(x)))
+        # print(x.size())  # Debug print to check size after conv2
         return x
 
     def forward(self, x):
-        x = self._conv_output_size(x)
-        x = x.view(-1, self._to_linear)
+        x = F.relu(self.conv1(x))
+        x = self.pool(x)
+        x = F.relu(self.conv2(x))
+        x = self.pool(x)
+        x = x.view(-1, self._to_linear)  # Flatten the output for the fully connected layer
         x = F.relu(self.fc1(x))
         for layer in self.hidden_layers:
             x = F.relu(layer(x))
         x = self.output(x)
-        # return torch.sigmoid(x)  # Use sigmoid for multi-label classification
         return x
 
     def init_weights(self):
@@ -56,12 +60,12 @@ class Algorithm(nn.Module):
 
 # Update the config
 config = {
-    "input_size": (600, 585),  # Images are 600x585 pixels
+    "input_size": (600, 535),  # Images are 600x585 pixels
     "hidden_size": 100,
     "output_size": 50,  # 50 separate bands to classify
     "num_hidden_layers": 5,
-    "learning_rate": 0.01,
-    "num_epochs": 3,
+    "learning_rate": 0.001,
+    "num_epochs": 6,
     "batch_size": 20,
     "num_workers": 4
 }

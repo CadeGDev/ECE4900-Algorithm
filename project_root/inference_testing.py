@@ -6,14 +6,14 @@ from algorithm_model import Algorithm, config
 
 # Define the preprocessing transformation
 class TransformationPipeline:
-    def __init__(self, crop_box=(100, 50, 700, 585), resize_dims=(600, 585), threshold=0.5):
+    def __init__(self, crop_box=(100, 50, 700, 585), resize_dims=(600, 535), threshold=0.5):
         self.crop_box = crop_box
         self.resize_dims = resize_dims
         self.threshold = threshold
 
     def transform(self, img):
         if self.crop_box is not None:
-            img = TF.crop(img, *self.crop_box)
+            img = TF.crop(img, 50, 100, 535, 600)
         img = TF.to_tensor(img)
         img = self.apply_binary_mask(img, self.threshold)
         img = TF.resize(img, self.resize_dims)
@@ -25,16 +25,16 @@ class TransformationPipeline:
         return torch.where(tensor > threshold, torch.ones_like(tensor), torch.zeros_like(tensor)) 
 
 # Load the trained model
-# model = Algorithm(config['input_size'], config['hidden_size'], config['output_size'], config['num_hidden_layers'])
+model = Algorithm(config['input_size'], config['hidden_size'], config['output_size'], config['num_hidden_layers'])
 # model.load_state_dict(torch.load("/Users/cadeglauser/VSCose2Projects/ECE4900-Algorithm/TrainingModelV1.pth", map_location=torch.device('cpu')))
-model = torch.load("./TrainingModelV1.pt")
+model.load_state_dict(torch.load("./TrainingModelV1.pt"))
 model.eval()
 
 # Initialize the transformation pipeline
 transformation_pipeline = TransformationPipeline()
 
 # Load the spectrogram image file
-spectrogram_image_path = '/Users/cadeglauser/VSCose2Projects/ECE4900-Algorithm/project_root/Continuous/spectrogram44429.png'
+spectrogram_image_path = '/Users/cadeglauser/VSCose2Projects/ECE4900-Algorithm/project_root/Continuous/spectrogram4720.png'
 spectrogram_image = Image.open(spectrogram_image_path)
 
 # Apply transformations

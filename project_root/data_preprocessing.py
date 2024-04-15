@@ -27,18 +27,21 @@ batch_size = config["batch_size"]
 
 
 class TransformationPipeline:
-    def __init__(self, crop_box=(100, 50, 700, 585), resize_dims=(600, 585), threshold=0.5):
+    def __init__(self, crop_box=(100, 50, 700, 585), resize_dims=(600, 535), threshold=0.5):
         self.crop_box = crop_box
         self.resize_dims = resize_dims
         self.threshold = threshold
 
     def transform(self, img):
         if self.crop_box is not None:
-            img = TF.crop(img, *self.crop_box)
+            # img = TF.crop(img, *self.crop_box)
+            img = TF.crop(img, 50, 100, 535, 600)
         img = TF.to_tensor(img)
-        img = self.apply_binary_mask(img, self.threshold)
+        # img = self.apply_binary_mask(img, self.threshold)
         img = TF.resize(img, self.resize_dims)
+        # img = TF.resize(img, (600,535))
         img = TF.rgb_to_grayscale(img)
+        img = TF.normalize(img, 0, 1)
         return img
 
     @staticmethod
@@ -46,7 +49,7 @@ class TransformationPipeline:
         return torch.where(tensor > threshold, torch.ones_like(tensor), torch.zeros_like(tensor))
 
 class DatasetPreprocessor:
-    def __init__(self, csv_file, root_dir, output_file, subset='train', test_size=0.2, random_state=42, crop_box=(100, 50, 700, 585), resize_dims=(600, 585), threshold=0.5):
+    def __init__(self, csv_file, root_dir, output_file, subset='train', test_size=0.2, random_state=42, crop_box=(100, 50, 700, 585), resize_dims=(600, 535), threshold=0.5):
         self.csv_file = csv_file
         self.root_dir = root_dir
         self.output_file = output_file
@@ -73,35 +76,25 @@ class DatasetPreprocessor:
 
     def process_and_save(self):
         processed_images = []
-        label_vectors = []
+        label_indices = []  # This will store the class indices instead of one-hot vectors
         
         num_bands = 50
         for i in self.indices:
             row = self.labels_frame.iloc[i]
             img_path = os.path.join(self.root_dir, row['Filename'])
-            # Load and process image here, then append to processed_images and label_vectors
+            # Load and process image here, then append to processed_images and label_indices
             center_frequency = int(row['Frequency(MHz)']) - 1  # Adjusted for 0 indexing
-
-            # Initialize the label vector with zeros (no signal by default)
-            one_hot_label = np.zeros(num_bands)
-
-            # Mark the center and adjacent bands as signal
-            for j in range(max(0, center_frequency - 1), min(num_bands, center_frequency + 2)):
-                one_hot_label[j] = 1
 
             with Image.open(img_path) as img:
                 transformed_img = self.transformation_pipeline.transform(img)
                 processed_images.append(transformed_img)
-            label_vectors.append(one_hot_label)  # Append the one-hot encoded label vector
+            label_indices.append(center_frequency)  # Append the class index directly
 
         # Convert lists to tensors
         images_tensor = torch.stack(processed_images)
 
-        # Convert the list of NumPy arrays into a single NumPy array
-        labels_array = np.array(label_vectors)
-
-        # Convert the NumPy array into a PyTorch tensor
-        labels_tensor = torch.tensor(labels_array, dtype=torch.float)
+        # Convert label indices to a tensor directly
+        labels_tensor = torch.tensor(label_indices, dtype=torch.long)  # Ensure the dtype is long for indices
         dataset = TensorDataset(images_tensor, labels_tensor)
         
         # Save the dataset
