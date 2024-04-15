@@ -45,7 +45,8 @@ class Algorithm(nn.Module):
         for layer in self.hidden_layers:
             x = F.relu(layer(x))
         x = self.output(x)
-        return torch.sigmoid(x)  # Use sigmoid for multi-label classification
+        # return torch.sigmoid(x)  # Use sigmoid for multi-label classification
+        return x
 
     def init_weights(self):
         for m in self.modules():
@@ -60,7 +61,7 @@ config = {
     "output_size": 50,  # 50 separate bands to classify
     "num_hidden_layers": 5,
     "learning_rate": 0.01,
-    "num_epochs": 5,
+    "num_epochs": 3,
     "batch_size": 20,
     "num_workers": 4
 }

@@ -164,13 +164,14 @@ project_root/Cont100
 AlgoPreviousVersions/.DS_Store
 AlgoPreviousVersions/2023.03.26_working/.DS_Store
 AlgoPreviousVersions/2023.03.26_working/project_root/.DS_Store
-
+TrainingModelV1.pth
+project_root/TrainingModelV1.pth
+project_root/TrainingModelV2.pth
 project_root/data/processed_dataset.pt
 project_root/data/processed_TestDataset.pt
 project_root/data/processed_TestDataset100.pt
 project_root/data/processed_TrainDataset.pt
 project_root/data/processed_TrainDataset100.pt
-TrainingModelV1.pth
 AlgoPreviousVersions/2023.03.26/.DS_Store
 AlgoPreviousVersions/2023.03.26/project_root/.DS_Store
 AlgoPreviousVersions/2023.03.26/project_root/algorithm_model.py
