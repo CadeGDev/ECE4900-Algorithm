@@ -2,14 +2,13 @@ import torch
 import torchvision.transforms.v2 as transforms  # For data preprocessing
 from torch.utils.data import DataLoader, TensorDataset, Dataset
 from PIL import Image
-from sklearn.model_selection import train_test_split # To install run "pip install scikit-learn" in terminal
 import numpy as np
 import os
 import pandas as pd
 from algorithm_model import config, Algorithm_v0_1 # Import hyperparameter values
 
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
 
 import torch
 from PIL import Image

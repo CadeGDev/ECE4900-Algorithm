@@ -1,82 +1,58 @@
 import os
 import subprocess
-import psutil
-import pynvml
+from jtop import jtop, JtopException
 import sys
 import time
-
-# Function to get CPU usage
-def get_cpu_usage():
-    return psutil.cpu_percent(interval=1)
-
-# Function to get GPU usage
-def get_gpu_usage():
-    pynvml.nvmlInit()
-    handle = pynvml.nvmlDeviceGetHandleByIndex(0)  # Assuming there's only one GPU
-    info = pynvml.nvmlDeviceGetUtilizationRates(handle)
-    return info.gpu
-
-def get_RAM_usage():
-    return psutil.virtual_memory().percent
+import csv
+import argparse
 
 # Function to run the target Python script with an integer argument
 def run_target_script(script_path, argument):
     return subprocess.Popen(['python', script_path, str(argument)])
 
-if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python track_usage.py <path_to_target_script.py> <integer_argument>")
-        sys.exit(1)
-   
-    # Extract the path to the target script and the integer argument from the command line
-    target_script_path = sys.argv[1]
-    try:
-        argument = int(sys.argv[2])
-    except ValueError:
-        print("Argument must be an integer")
-        sys.exit(1)
 
-    # Run the target script with the integer argument
-    process = run_target_script(target_script_path, argument)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Simple jtop logger')
+    # Standard file to store the logs
+    parser.add_argument('--script', action="store", required = True, help = "Target script")
+    parser.add_argument('--arg', action="store", help = "Image to be processed by script", default=1)
+    parser.add_argument('--file', action="store", dest="file", default="log.csv")
+    args = parser.parse_args()
+
+    print("Collecting Benchmark Data...")
+    print("Saving log on {file}".format(file=args.file))
+    print("===================================================================")
     start_time = time.time()
 
-    # Initialize cumulative CPU and GPU usage
-    total_cpu_usage = 0
-    total_gpu_usage = 0
-    total_ram_usage = 0
-    count = 0
+    try:
+        with jtop() as jetson:
+            # Make csv file and setup csv
+            with open(args.file, 'w') as csvfile:
+                stats = jetson.stats
+                # Initialize cws writer
+                writer = csv.DictWriter(csvfile, fieldnames=stats.keys())
+                # Write header
+                writer.writeheader()
+                # Write first row
+                writer.writerow(stats)
+                # Begin process
+                process = run_target_script(args.script, args.arg)
+                # Start loop
+                while jetson.ok():
+                    stats = jetson.stats
+                    # Write row
+                    writer.writerow(stats)
+                    #print("Log at {time}".format(time=stats['time']))
+                    if process.poll() is not None:
+                        break
 
-    # Monitoring loop
-    while True:
-        # Get CPU and GPU usage
-        cpu_usage = get_cpu_usage()
-        #gpu_usage = get_gpu_usage()
-        ram_usage = get_RAM_usage()
+                end_time = time.time()
+                runtime = end_time - start_time
+                print(f"Process completed after {runtime} seconds")
 
-        # Add CPU and GPU usage to the cumulative total
-        total_cpu_usage += cpu_usage
-        #total_gpu_usage += gpu_usage
-        total_ram_usage += ram_usage
-        count += 1
-
-        # Check if the target script has terminated
-        if process.poll() is not None:
-            break
-
-        # Sleep for some time before checking again
-        time.sleep(1)
-
-    # Calculate average CPU and GPU usage
-    average_cpu_usage = total_cpu_usage / count
-    average_gpu_usage = total_gpu_usage / count
-    average_ram_usage = total_ram_usage / count
-
-    # Print the average CPU and GPU usage at the end
-    print(f"Average CPU Usage: {average_cpu_usage}%")
-    print(f"Average GPU Usage: {average_gpu_usage}%")
-    print(f"Average RAM Usage: {average_ram_usage}%")
-
-    # Calculate total runtime of the target script
-    end_time = time.time()
-    runtime = end_time - start_time
-    print(f"Total runtime: {runtime} seconds")
+    except JtopException as e:
+        print(e)
+    except KeyboardInterrupt:
+        print("Closed with CTRL-C")
+    except IOError:
+        print("I/O error")
