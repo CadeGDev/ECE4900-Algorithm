@@ -11,7 +11,7 @@ import torch.nn.functional as F
 class Algorithm(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_hidden_layers):
         super(Algorithm, self).__init__()
-        output_size = 50  # There are 50 separate bands to classify
+        output_size = 50  # Ensure this is set for multi-label classification
 
         # Convolutional layers
         self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
@@ -25,32 +25,25 @@ class Algorithm(nn.Module):
         # Fully connected layers
         self.fc1 = nn.Linear(self._to_linear, hidden_size)
         self.hidden_layers = nn.ModuleList([nn.Linear(hidden_size, hidden_size) for _ in range(num_hidden_layers)])
-        self.output = nn.Linear(hidden_size, output_size)
-
-    def _compute_flat_size(self, input_size):
-        with torch.no_grad():
-            dummy_input = torch.zeros(1, 1, input_size[0], input_size[1])  # use the actual image size here
-            output = self._conv_output_size(dummy_input)
-            self._to_linear = output.numel()  # compute the total number of resulting features
-
-    def _conv_output_size(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        # print(x.size())  # Debug print to check size after conv1
-        x = self.pool(F.relu(self.conv2(x)))
-        # print(x.size())  # Debug print to check size after conv2
-        return x
+        self.fc2 = nn.Linear(hidden_size, output_size)
+        self.sigmoid = nn.Sigmoid()  # Use sigmoid activation for multi-label classification
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = self.pool(x)
-        x = F.relu(self.conv2(x))
-        x = self.pool(x)
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
         x = x.view(-1, self._to_linear)  # Flatten the output for the fully connected layer
         x = F.relu(self.fc1(x))
         for layer in self.hidden_layers:
             x = F.relu(layer(x))
-        x = self.output(x)
+        x = self.fc2(x)
         return x
+
+    def _compute_flat_size(self, input_size):
+        # This function computes the size of the flattened image feature vector after all conv and pooling layers
+        with torch.no_grad():
+            dummy_input = torch.zeros(1, 1, input_size[0], input_size[1])  # use the actual image size here
+            output = self.conv2(self.pool(self.conv1(dummy_input)))
+            self._to_linear = int(torch.prod(torch.tensor(output.size()[1:])))
 
     def init_weights(self):
         for m in self.modules():

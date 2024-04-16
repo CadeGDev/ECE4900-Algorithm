@@ -48,35 +48,37 @@ def test_accuracy(model, dataloader, device):
     model.train()  # Set model back to training mode
     return accuracy
 
+def multi_label_accuracy(outputs, labels, threshold=0.5):
+    # Convert outputs to binary predictions
+    preds = outputs > threshold
+    # Calculate accuracy
+    correct_preds = (preds == labels).float()
+    accuracy_per_label = correct_preds.sum(0) / correct_preds.shape[0]
+    overall_accuracy = correct_preds.sum() / correct_preds.numel()
+    return overall_accuracy, accuracy_per_label.mean()
+
 def train(model, num_epochs, train_dataloader, test_dataloader, criterion, optimizer, device):
     best_accuracy = 0.0
     print("Begin training ...")
     for epoch in range(num_epochs):
         running_loss = 0.0
-        for i, (images, labels) in enumerate(train_dataloader):
+        for images, labels in train_dataloader:
             images = images.to(device)
             labels = labels.to(device)
-            
-            # if i == 0:  # Visualize the first batch of each epoch
-            #     show_images(images, labels)
-            
             optimizer.zero_grad()
             outputs = model(images)
             loss = criterion(outputs, labels)
-            
             loss.backward()
             optimizer.step()
-            
             running_loss += loss.item()
+
+        # Calculate new metrics after each epoch
+        overall_accuracy, average_accuracy_per_label = multi_label_accuracy(outputs.detach(), labels)
+        print(f'Epoch {epoch}, Loss: {running_loss / len(train_dataloader)}, Overall Acc: {overall_accuracy}, Avg Acc per Label: {average_accuracy_per_label}')
         
-        train_loss_value = running_loss / len(train_dataloader)
-        accuracy = test_accuracy(model, test_dataloader, device)
-        
-        print(f'Epoch {epoch}, Loss: {train_loss_value}, Accuracy: {accuracy}%')
-        
-        if accuracy > best_accuracy:
+        if overall_accuracy > best_accuracy:
             save_model(model)
-            best_accuracy = accuracy
+            best_accuracy = overall_accuracy
 
 def main():
     start = time.perf_counter()
@@ -133,7 +135,7 @@ def main():
     model.init_weights()
 
     # Define loss function and optimizer
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = optim.Adam(model.parameters(), lr=config['learning_rate'])
 
     # Train the model
