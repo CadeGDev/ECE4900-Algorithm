@@ -4,6 +4,7 @@ from PIL import Image
 import torchvision.transforms.functional as TF
 from algorithm_model import Algorithm, config
 import argparse
+import os
 
 
 class InferenceTester:
@@ -58,19 +59,31 @@ class TransformationPipeline:
 
 
 if __name__ == "__main__":
-   parser = argparse.ArgumentParser(description='Spectrogram Inference')
+    parser = argparse.ArgumentParser(description='Spectrogram Inference')
   
-   parser.add_argument('--model', action="store", required = True, help = "Pre-trained model path")
-   parser.add_argument('--image', action="store", required = True, help = "Image to be processed by script")
-   args = parser.parse_args()
+    parser.add_argument('--model', action="store", required = True, help = "Pre-trained model path")
+    parser.add_argument('--image', action="store", required = True, help = "Image to be processed by script")
+    args = parser.parse_args()
 
 
-   tester = InferenceTester(args.model, args.image)
-   predicted_class = tester.perform_inference()
-   print(f'Predicted class: {predicted_class}')
+    tester = InferenceTester(args.model, args.image)
+    predicted_class = tester.perform_inference()
+    print(f'Predicted class: {predicted_class}')
+    # Specify the name of the new text file
+    file_name = "inference.txt"
 
+    # Create the "Output" folder if it doesn't exist
+    output_folder = "/home/l3harris-clinic/Desktop/Algorithm/Output"
+    if not os.path.exists(output_folder):
+        os.makedirs(output_folder)
 
+    # Define the full path to the file within the "Output" folder
+    file_path = os.path.join(output_folder, file_name)
 
+    # Open the new text file in write mode ('w')
+    with open(file_path, "w") as file:
+        # Write the string to the file
+        file.write(str(predicted_class))
 
 # Example usage 
 """
@@ -79,6 +92,6 @@ spectrogram_image_path = '/path/to/spectrogram_image.png'
 tester = InferenceTester(model_file_path, spectrogram_image_path)
 predicted_class = tester.perform_inference()
 print(f'Predicted class: {predicted_class}')
-/usr/bin/python3 /home/l3harris-clinic/Algorithm/ECE4900-Algorithm/project_root/inference_testing.py --model /home/l3harris-clinic/Algorithm/Trained_Models/TrainingModelV2Cont.pt --image /home/l3harris-clinic/Algorithm/spectrogram8.png
+python3 /home/l3harris-clinic/Desktop/Algorithm/ECE4900-Algorithm/project_root/inference_testing.py --model /home/l3harris-clinic/Desktop/Algorithm/Trained_Models/TrainingModelV2Cont.pt --image /home/l3harris-clinic/Desktop/Algorithm/Spectrograms/spectrogram11.png
 """
 
