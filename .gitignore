@@ -1,6 +1,7 @@
 data/
 models/
 /save
+ECE4900-Algorithm/project_root/log.csv
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

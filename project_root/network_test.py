@@ -1,57 +1,67 @@
 import torch
-import torchvision.transforms.v2 as transforms  # For data preprocessing
-from torch.utils.data import DataLoader, TensorDataset, Dataset
-from PIL import Image
-import numpy as np
-import os
-import pandas as pd
-from algorithm_model import config, Algorithm_v0_1 # Import hyperparameter values
-
-import numpy as np
-import matplotlib.pyplot as plt 
-
-import torch
+from torchvision import transforms
+from algorithm_model import Algorithm, config # replace with your actual model class
 from PIL import Image
 import torchvision.transforms.functional as TF
-from algorithm_model import Algorithm_v0_1
 
-def load_image(image_path):
-    crop_box=(100, 50, 700, 585)
-    resize_dims=(600, 585)
-    threshold=0.5
-    # Load an image and apply preprocessing transformations
-    image = Image.open(image_path)
-    image = TF.to_tensor(image)
-    image = apply_binary_mask(image, threshold)
-    image = TF.resize(image, resize_dims)
-    image = TF.rgb_to_grayscale(image)
-    return image
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(f"Model will use: {device}")
 
-def apply_binary_mask(tensor, threshold):
+# Step 1: Load the trained model
+model = Algorithm(config['input_size'], config['hidden_size'], config['output_size'], config['num_hidden_layers']) # initialize model architecture
+
+# Load the model weights onto the CPU (only once and with the correct path)
+model.load_state_dict(torch.load("/home/l3harris-clinic/Algorithm/TrainingModelV1.pth", map_location=device))
+
+# Set the model to evaluation mode
+model.eval()
+
+#Transformations
+class TransformationPipeline:
+    def __init__(self, crop_box=(100, 50, 700, 585), resize_dims=(600, 585), threshold=0.5):
+        self.crop_box = crop_box
+        self.resize_dims = resize_dims
+        self.threshold = threshold
+
+    def transform(self, img):
+        if self.crop_box is not None:
+            img = TF.crop(img, *self.crop_box)
+        img = TF.to_tensor(img)
+        img = self.apply_binary_mask(img, self.threshold)
+        img = TF.resize(img, self.resize_dims)
+        img = TF.rgb_to_grayscale(img)
+        return img
+
+    @staticmethod
+    def apply_binary_mask(tensor, threshold):
         return torch.where(tensor > threshold, torch.ones_like(tensor), torch.zeros_like(tensor))
 
-def test_network(image_path, model):
-    # Load and preprocess the image
-    image = load_image(image_path)
-    
-    model.load_state_dict(torch.load('ECE4900-Algorithm\project_root\models\TrainedModelV1.pth'))
-    # Run the image through the network
-    model.eval()  # Set the model to evaluation mode
-    with torch.no_grad():
-        output = model(image)
+# Initialize the transformation pipeline with desired parameters
+transformation_pipeline = TransformationPipeline()
 
-    # Print or process the output
-    print("Network output:", output)
+# Load your spectrogram image file
+spectrogram_image_path = '/home/l3harris-clinic/Algorithm/spectrogram4993.png'
+spectrogram_image = Image.open(spectrogram_image_path)
 
-# Path to a sample spectrogram image
-sample_image_path = 'ECE4900-Algorithm\project_root\data\test_image.png'
+# Apply transformations
+transformed_image = transformation_pipeline.transform(spectrogram_image)
 
-# Initialize the neural network
-input_size = 1427, 858
-hidden_size = 128
-output_size = 10 
-num_hidden_layers = 2 
+# Remove the singleton dimension from the tensor
+input_tensor = transformed_image.squeeze(0)
 
-model = Algorithm_v0_1(input_size, hidden_size, output_size, num_hidden_layers)
-# Test the network with a sample image
-test_network(sample_image_path, model)
+input_batch = input_tensor.unsqueeze(0) # add a batch dimension
+
+# If working with GPU, move your model and input batch to GPU
+
+# Step 3: Perform inference
+with torch.no_grad():
+    output = model(input_batch)
+
+# Step 4: Process the output
+# For a classification model, you may want to apply a softmax to the output
+# and then use the argmax to get the most likely class label
+probabilities = torch.nn.functional.softmax(output, dim=1)
+predicted_label = torch.argmax(probabilities).item()
+# If you have a mapping of class indices to class labels, you would use it here to get the label
+
+print(f'Predicted label: {probabilities}') # or print the actual label if you have the mapping

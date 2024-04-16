@@ -8,15 +8,15 @@ import torch.nn.functional as F
 
 
 # Define neural network architecture
-class Algorithm_v0_1(nn.Module):
+class Algorithm(nn.Module):
     def __init__(self, input_size, hidden_size, output_size, num_hidden_layers):
-        super(Algorithm_v0_1, self).__init__()
+        super(Algorithm, self).__init__()
         output_size = 50  # There are 50 separate bands to classify
 
         # Convolutional layers
-        self.conv1 = nn.Conv2d(1, 16, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(1, 16, kernel_size=5, padding=1)
         self.pool = nn.MaxPool2d(2)  # Max pooling over a (2,2) window
-        self.conv2 = nn.Conv2d(16, 32, kernel_size=3, padding=1)
+        self.conv2 = nn.Conv2d(16, 32, kernel_size=5, padding=1)
 
         # Dynamically compute the flattened size after convolutions
         self._to_linear = None
@@ -45,7 +45,8 @@ class Algorithm_v0_1(nn.Module):
         for layer in self.hidden_layers:
             x = F.relu(layer(x))
         x = self.output(x)
-        return torch.sigmoid(x)  # Use sigmoid for multi-label classification
+        # return torch.sigmoid(x)  # Use sigmoid for multi-label classification
+        return x
 
     def init_weights(self):
         for m in self.modules():
@@ -60,7 +61,7 @@ config = {
     "output_size": 50,  # 50 separate bands to classify
     "num_hidden_layers": 5,
     "learning_rate": 0.01,
-    "num_epochs": 5,
+    "num_epochs": 3,
     "batch_size": 20,
     "num_workers": 4
 }
