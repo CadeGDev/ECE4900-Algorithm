@@ -205,8 +205,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     model_file_path = args.model
-    csv_file_path = os.path.join(model_file_path, 'spectrogram_labels.csv')
     base_image_folder = args.images
+    csv_file_path = os.path.join(base_image_folder, 'spectrogram_labels.csv')
+    
     accuracy = evaluate_model_accuracy(model_file_path, csv_file_path, base_image_folder, num_samples=100)
     print(f'Model accuracy: {accuracy}%')
     """
