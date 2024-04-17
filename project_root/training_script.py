@@ -14,6 +14,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def show_images(images, labels, num_images=5):
+    """
+    Displays a batch of images with their corresponding labels.
+
+    Args:
+        images (torch.Tensor): The batch of images to display.
+        labels (torch.Tensor): The batch of labels corresponding to the images.
+        num_images (int): Number of images to display.
+    """
     images = images.to('cpu').numpy()  # Convert images to NumPy arrays for visualization
     labels = labels.to('cpu').numpy()
     
@@ -28,9 +36,27 @@ def show_images(images, labels, num_images=5):
     plt.show()
 
 def save_model(model, path="./TrainingModelV1.pt"):
+    """
+    Saves the model state to a specified path.
+
+    Args:
+        model (torch.nn.Module): The model to save.
+        path (str): File path where the model state will be saved.
+    """
     torch.save(model.state_dict(), path)
 
 def test_accuracy(model, dataloader, device):
+    """
+    Evaluates the model's accuracy on the provided dataloader.
+
+    Args:
+        model (torch.nn.Module): The model to evaluate.
+        dataloader (DataLoader): DataLoader with test/validation data.
+        device (torch.device): The device tensors will be transferred to.
+
+    Returns:
+        float: The accuracy percentage.
+    """
     model.eval()  # Set model to evaluation mode
     total_correct = 0
     total_samples = 0
@@ -49,6 +75,18 @@ def test_accuracy(model, dataloader, device):
     return accuracy
 
 def train(model, num_epochs, train_dataloader, test_dataloader, criterion, optimizer, device):
+    """
+    Trains the model using the provided training and validation sets.
+
+    Args:
+        model (torch.nn.Module): The model to train.
+        num_epochs (int): Number of epochs to train for.
+        train_dataloader (DataLoader): DataLoader for training data.
+        test_dataloader (DataLoader): DataLoader for test data.
+        criterion (loss function): The loss function to use for training.
+        optimizer (torch.optim.Optimizer): The optimizer for updating model weights.
+        device (torch.device): The device model and data are transferred to.
+    """
     best_accuracy = 0.0
     print("Begin training ...")
     for epoch in range(num_epochs):
@@ -79,6 +117,9 @@ def train(model, num_epochs, train_dataloader, test_dataloader, criterion, optim
             best_accuracy = accuracy
 
 def main():
+    """
+    Main function to execute the training process, including setting up data, model, and training parameters.
+    """
     start = time.perf_counter()
 
     # Extract hyperparameters

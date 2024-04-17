@@ -9,6 +9,25 @@ import torch.nn.functional as F
 
 # Define neural network architecture
 class Algorithm(nn.Module):
+    """
+    A neural network model for image classification, consisting of convolutional and fully connected layers.
+
+    Attributes:
+        conv1 (nn.Conv2d): First convolutional layer with 16 filters.
+        conv2 (nn.Conv2d): Second convolutional layer with 32 filters.
+        pool (nn.MaxPool2d): Max pooling layer to reduce spatial dimensions.
+        fc1 (nn.Linear): First fully connected layer.
+        hidden_layers (nn.ModuleList): A list of fully connected layers.
+        output (nn.Linear): Output layer with neurons equal to the number of classes.
+        _to_linear (int): The size of the tensor before it is fed into the fully connected layers.
+
+    Methods:
+        __init__(input_size, hidden_size, output_size, num_hidden_layers): Initializes the network architecture.
+        _compute_flat_size(input_size): Computes the size of the flattened tensor after convolutional layers.
+        _conv_output_size(x): Helper method to simulate the output size of conv layers on a dummy input.
+        forward(x): Defines the forward pass of the model.
+        init_weights(): Initializes weights of the model using He initialization.
+    """
     def __init__(self, input_size, hidden_size, output_size, num_hidden_layers):
         super(Algorithm, self).__init__()
         output_size = 50  # There are 50 separate bands to classify
@@ -28,12 +47,27 @@ class Algorithm(nn.Module):
         self.output = nn.Linear(hidden_size, output_size)
 
     def _compute_flat_size(self, input_size):
+        """
+        Computes the size of the tensor after all convolutional and pooling layers (flattened size).
+
+        Args:
+            input_size (tuple): The size (H, W) of the input image.
+        """
         with torch.no_grad():
             dummy_input = torch.zeros(1, 1, input_size[0], input_size[1])  # use the actual image size here
             output = self._conv_output_size(dummy_input)
             self._to_linear = output.numel()  # compute the total number of resulting features
 
     def _conv_output_size(self, x):
+        """
+        Passes a dummy input through the convolution and pooling layers to determine output size.
+
+        Args:
+            x (torch.Tensor): Dummy input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor from the last convolutional layer.
+        """
         x = self.pool(F.relu(self.conv1(x)))
         # print(x.size())  # Debug print to check size after conv1
         x = self.pool(F.relu(self.conv2(x)))
@@ -41,6 +75,15 @@ class Algorithm(nn.Module):
         return x
 
     def forward(self, x):
+        """
+        Defines the forward pass of the model.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            torch.Tensor: Output tensor from the last layer.
+        """
         x = F.relu(self.conv1(x))
         x = self.pool(x)
         x = F.relu(self.conv2(x))
@@ -53,6 +96,9 @@ class Algorithm(nn.Module):
         return x
 
     def init_weights(self):
+        """
+        Initializes the weights of the model using He initialization for ReLU activations.
+        """
         for m in self.modules():
             if isinstance(m, nn.Conv2d) or isinstance(m, nn.Linear):
                 nn.init.kaiming_normal_(m.weight)
