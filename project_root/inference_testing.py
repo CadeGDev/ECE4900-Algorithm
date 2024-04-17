@@ -9,7 +9,7 @@ import pandas as pd
 
 
 class InferenceTester:
-   """
+    """
     A class to handle the loading of a neural network model and perform inference on given images.
 
     Attributes:
@@ -20,25 +20,20 @@ class InferenceTester:
         load_model(): Loads the neural network model from the specified file.
         perform_inference(image_path): Processes an image and performs inference using the loaded model.
     """
-   def __init__(self, model_path, image_path):
-       self.model_path = model_path
-       self.image_path = image_path
-       self.model = self.load_model()
-       self.transformation_pipeline = TransformationPipeline()
+    def __init__(self, model_path):
+        self.model_path = model_path
+        self.model = self.load_model()
+        self.transformation_pipeline = TransformationPipeline()
 
+    def load_model(self):
+        """Loads the model from the specified path and prepares it for inference."""
+        model = Algorithm(config['input_size'], config['hidden_size'], config['output_size'], config['num_hidden_layers'])
+        model.load_state_dict(torch.load(self.model_path, map_location=torch.device('cpu')))
+        model.eval()
+        return model
 
-   def load_model(self):
-       """Loads the model from the specified path and prepares it for inference."""
-       model = Algorithm(config['input_size'], config['hidden_size'], config['output_size'], config['num_hidden_layers'])
-       device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-       print(f"Model will use: {device}")
-       model.load_state_dict(torch.load(self.model_path, map_location=device))
-       model.eval()
-       return model
-
-
-   def perform_inference(self):
-       """
+    def perform_inference(self, image_path):
+        """
         Opens an image, applies necessary transformations, and performs inference.
 
         Args:
@@ -47,15 +42,15 @@ class InferenceTester:
         Returns:
             int: Predicted class index as an integer.
         """
-       image = Image.open(self.image_path)
-       transformed_image = self.transformation_pipeline.transform(image)
-       if transformed_image.dim() > 3 and transformed_image.shape[0] == 1:
-           transformed_image = transformed_image.squeeze(0)
-       input_tensor = transformed_image.unsqueeze(0)
-       with torch.no_grad():
-           output = self.model(input_tensor)
-       predicted_class = torch.argmax(output, dim=1).item()
-       return predicted_class
+        image = Image.open(image_path)
+        transformed_image = self.transformation_pipeline.transform(image)
+        if transformed_image.dim() > 3 and transformed_image.shape[0] == 1:
+            transformed_image = transformed_image.squeeze(0)
+        input_tensor = transformed_image.unsqueeze(0)
+        with torch.no_grad():
+            output = self.model(input_tensor)
+        predicted_class = torch.argmax(output, dim=1).item()
+        return predicted_class
 
 
 class TransformationPipeline:
@@ -175,6 +170,54 @@ print(f'Predicted class: {predicted_class}')
 python3 /home/l3harris-clinic/Desktop/Algorithm/ECE4900-Algorithm/project_root/inference_testing.py --model /home/l3harris-clinic/Desktop/Algorithm/Trained_Models/TrainingModelV2Cont.pt --image /home/l3harris-clinic/Desktop/Algorithm/Spectrograms/spectrogram11.png
 """
 
+### TESTING CLASS ###
+
+#class InferenceTester:
+#    """
+#    A class to handle the loading of a neural network model and perform inference on given images.
+#
+#    Attributes:
+#        model_path (str): Path to the saved model file.
+#        model (torch.nn.Module): Loaded neural network model.
+#
+#    Methods:
+#        load_model(): Loads the neural network model from the specified file.
+#        perform_inference(image_path): Processes an image and performs inference using the loaded model.
+#    """
+#    def __init__(self, model_path):
+#        self.model_path = model_path
+#        self.model = self.load_model()
+#        self.transformation_pipeline = TransformationPipeline()
+#
+#    def load_model(self):
+#        """Loads the model from the specified path and prepares it for inference."""
+#        model = Algorithm(config['input_size'], config['hidden_size'], config['output_size'], config['num_hidden_layers'])
+#        model.load_state_dict(torch.load(self.model_path, map_location=torch.device('cpu')))
+#        model.eval()
+#        return model
+#
+#    def perform_inference(self, image_path):
+#        """
+#        Opens an image, applies necessary transformations, and performs inference.
+#
+#        Args:
+#            image_path (str): Path to the image file.
+#
+#        Returns:
+#            int: Predicted class index as an integer.
+#        """
+#        image = Image.open(image_path)
+#        transformed_image = self.transformation_pipeline.transform(image)
+#        if transformed_image.dim() > 3 and transformed_image.shape[0] == 1:
+#            transformed_image = transformed_image.squeeze(0)
+#        input_tensor = transformed_image.unsqueeze(0)
+#        with torch.no_grad():
+#            output = self.model(input_tensor)
+#        predicted_class = torch.argmax(output, dim=1).item()
+#        return predicted_class
+
+
+### JETSON CLASS ###
 
 #class InferenceTester:
 #   """
@@ -224,4 +267,3 @@ python3 /home/l3harris-clinic/Desktop/Algorithm/ECE4900-Algorithm/project_root/i
 #           output = self.model(input_tensor)
 #       predicted_class = torch.argmax(output, dim=1).item()
 #       return predicted_class
-#
