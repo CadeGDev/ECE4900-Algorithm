@@ -12,20 +12,21 @@ import torchvision.transforms.functional as TF
 from algorithm_model import Algorithm, config
 
 # Function to run the target Python script with an integer argument
-def run_target_script(script_path, argument):
+def run_target_script(script_path, args):
     python_interp = sys.executable
     script_dir = os.path.dirname(script_path)
     os.chdir(script_dir)
-
-    return subprocess.Popen([python_interp, script_path, str(argument)])
+    command = [python_interp, script_path, "--model", str(args.model), "--image", str(args.image)]
+    return subprocess.Popen(command)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Simple jtop logger')
     # Standard file to store the logs
     parser.add_argument('--script', action="store", required = True, help = "Target script")
-    parser.add_argument('--arg', action="store", help = "Image to be processed by script", default=1)
-    parser.add_argument('--file', action="store", dest="file", default="log.csv")
+    parser.add_argument('--model', action="store", required = True, help = "Model to be used by script", default=1)
+    parser.add_argument('--image', action="store", required = True, help = "Image to be processed by script", default=1)
+    parser.add_argument('--file', action="store", dest="file", default="/home/l3harris-clinic/Desktop/Algorithm/Output/log.csv")
     args = parser.parse_args()
 
     print("Collecting Benchmark Data...")
@@ -45,7 +46,7 @@ if __name__ == "__main__":
                 # Write first row
                 writer.writerow(stats)
                 # Begin process
-                process = run_target_script(args.script, args.arg)
+                process = run_target_script(args.script, args)
                 # Start loop
                 while jetson.ok():
                     stats = jetson.stats
@@ -65,3 +66,5 @@ if __name__ == "__main__":
         print("Closed with CTRL-C")
     except IOError:
         print("I/O error")
+
+#python3 /home/l3harris-clinic/Desktop/Algorithm/ECE4900-Algorithm/project_root/track_usage.py --script /home/l3harris-clinic/Desktop/Algorithm/ECE4900-Algorithm/project_root/inference_testing.py --model /home/l3harris-clinic/Desktop/Algorithm/Trained_Models/TrainingModelV2Cont.pt --image /home/l3harris-clinic/Desktop/Algorithm/Spectrograms/spectrogram.png
