@@ -47,9 +47,10 @@ class TransformationPipeline:
        if self.crop_box is not None:
            img = TF.crop(img, 50, 100, 535, 600)
        img = TF.to_tensor(img)
-       img = self.apply_binary_mask(img, self.threshold)
+       #img = self.apply_binary_mask(img, self.threshold)
        img = TF.resize(img, self.resize_dims)
        img = TF.rgb_to_grayscale(img)
+       img = TF.normalize(img, 0, 1)
        return img
 
 
