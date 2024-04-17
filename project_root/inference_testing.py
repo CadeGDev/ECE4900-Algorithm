@@ -3,11 +3,11 @@ from torchvision import transforms
 from PIL import Image
 import torchvision.transforms.functional as TF
 from algorithm_model import Algorithm, config
+import pandas as pd
 
 class InferenceTester:
-    def __init__(self, model_path, image_path):
+    def __init__(self, model_path):
         self.model_path = model_path
-        self.image_path = image_path
         self.model = self.load_model()
         self.transformation_pipeline = TransformationPipeline()
 
@@ -17,8 +17,8 @@ class InferenceTester:
         model.eval()
         return model
 
-    def perform_inference(self):
-        image = Image.open(self.image_path)
+    def perform_inference(self, image_path):
+        image = Image.open(image_path)
         transformed_image = self.transformation_pipeline.transform(image)
         if transformed_image.dim() > 3 and transformed_image.shape[0] == 1:
             transformed_image = transformed_image.squeeze(0)
@@ -38,21 +38,38 @@ class TransformationPipeline:
         if self.crop_box is not None:
             img = TF.crop(img, 50, 100, 535, 600)
         img = TF.to_tensor(img)
-        img = self.apply_binary_mask(img, self.threshold)
+        # img = self.apply_binary_mask(img, self.threshold)
         img = TF.resize(img, self.resize_dims)
         img = TF.rgb_to_grayscale(img)
+        img = TF.normalize(img, 0, 1)
         return img
 
     @staticmethod
     def apply_binary_mask(tensor, threshold):
         return torch.where(tensor > threshold, torch.ones_like(tensor), torch.zeros_like(tensor))
 
+def evaluate_model_accuracy(model_path, csv_file_path, num_samples=None):
+    tester = InferenceTester(model_path)
+    data = pd.read_csv(csv_file_path)
+    if num_samples is not None:
+        data = data.sample(n=num_samples, random_state=42)
+    
+    correct_predictions = 0
+    for _, row in data.iterrows():
+        image_path = f"{base_image_folder}/{row['Filename']}"
+        predicted_frequency = tester.perform_inference(image_path)
+        if predicted_frequency == row['Frequency(MHz)']:
+            correct_predictions += 1
+
+    accuracy = correct_predictions / len(data) * 100
+    return accuracy
+
 # Example usage
 model_file_path = "./TrainingModelV1.pt"
-spectrogram_image_path = '/path/to/spectrogram_image.png'
-tester = InferenceTester(model_file_path, spectrogram_image_path)
-predicted_class = tester.perform_inference()
-print(f'Predicted class: {predicted_class}')
+csv_file_path = 'project_root/Continuous/spectrogram_labels.csv'
+base_image_folder = 'project_root/Continuous'
+accuracy = evaluate_model_accuracy(model_file_path, csv_file_path, num_samples=100)
+print(f'Model accuracy: {accuracy}%')
 
 
 
