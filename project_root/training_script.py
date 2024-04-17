@@ -14,6 +14,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def show_images(images, labels, num_images=5):
+    """
+    Displays a batch of images with their corresponding labels.
+
+    Args:
+        images (torch.Tensor): The batch of images to display.
+        labels (torch.Tensor): The batch of labels corresponding to the images.
+        num_images (int): Number of images to display.
+    """
     images = images.to('cpu').numpy()  # Convert images to NumPy arrays for visualization
     labels = labels.to('cpu').numpy()
     
@@ -27,11 +35,28 @@ def show_images(images, labels, num_images=5):
         ax.set_title(f'Label: {labels[i]}')
     plt.show()
 
-
 def save_model(model, path="./TrainingModelV1.pt"):
+    """
+    Saves the model state to a specified path.
+
+    Args:
+        model (torch.nn.Module): The model to save.
+        path (str): File path where the model state will be saved.
+    """
     torch.save(model.state_dict(), path)
 
 def test_accuracy(model, dataloader, device):
+    """
+    Evaluates the model's accuracy on the provided dataloader.
+
+    Args:
+        model (torch.nn.Module): The model to evaluate.
+        dataloader (DataLoader): DataLoader with test/validation data.
+        device (torch.device): The device tensors will be transferred to.
+
+    Returns:
+        float: The accuracy percentage.
+    """
     model.eval()  # Set model to evaluation mode
     total_correct = 0
     total_samples = 0
@@ -50,6 +75,18 @@ def test_accuracy(model, dataloader, device):
     return accuracy
 
 def train(model, num_epochs, train_dataloader, test_dataloader, criterion, optimizer, device):
+    """
+    Trains the model using the provided training and validation sets.
+
+    Args:
+        model (torch.nn.Module): The model to train.
+        num_epochs (int): Number of epochs to train for.
+        train_dataloader (DataLoader): DataLoader for training data.
+        test_dataloader (DataLoader): DataLoader for test data.
+        criterion (loss function): The loss function to use for training.
+        optimizer (torch.optim.Optimizer): The optimizer for updating model weights.
+        device (torch.device): The device model and data are transferred to.
+    """
     best_accuracy = 0.0
     print("Begin training ...")
     for epoch in range(num_epochs):
@@ -80,6 +117,9 @@ def train(model, num_epochs, train_dataloader, test_dataloader, criterion, optim
             best_accuracy = accuracy
 
 def main():
+    """
+    Main function to execute the training process, including setting up data, model, and training parameters.
+    """
     start = time.perf_counter()
 
     # Extract hyperparameters
@@ -100,28 +140,25 @@ def main():
 
     # Preprocess the dataset (Done only once)
     # COMMENT THIS OUT AFTER FIRST TIME PREPROCESSING
-    # Training dataset
-    preprocessorTrain = DatasetPreprocessor(csv_file,
-                                    root_dir,
-                                    train_output_file,
-                                    subset='train',
-                                    threshold=0.2)
-    preprocessorTrain.process_and_save()
+    # # Training dataset
+    # preprocessorTrain = DatasetPreprocessor(csv_file,
+    #                                 root_dir,
+    #                                 train_output_file,
+    #                                 subset='train',
+    #                                 threshold=0.2)
+    # preprocessorTrain.process_and_save()
 
-    # Testing dataset
-    preprocessorTest = DatasetPreprocessor(csv_file,
-                                    root_dir,
-                                    test_output_file,
-                                    subset='test',
-                                    threshold=0.2)
-    preprocessorTest.process_and_save()
+    # # Testing dataset
+    # preprocessorTest = DatasetPreprocessor(csv_file,
+    #                                 root_dir,
+    #                                 test_output_file,
+    #                                 subset='test',
+    #                                 threshold=0.2)
+    # preprocessorTest.process_and_save()
 
     # Load the preprocessed datasets
     train_dataset = torch.load(train_output_file)
     test_dataset = torch.load(test_output_file)
-
-    # Check the first label tensor to make sure it's the correct shape
-    # print(dataset.tensors[1][0].shape)  # Should be torch.Size([50])
 
     # Initialize the DataLoaders
     train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True, num_workers=config['num_workers'])
@@ -150,4 +187,3 @@ def main():
 if __name__ == '__main__':
     torch.multiprocessing.freeze_support()
     main()
-

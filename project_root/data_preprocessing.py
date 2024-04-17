@@ -27,12 +27,33 @@ batch_size = config["batch_size"]
 
 
 class TransformationPipeline:
+    """
+    A class for applying a series of transformations to an image, tailored for preparing data for neural network input.
+    
+    Attributes:
+        crop_box (tuple): Coordinates for cropping the image.
+        resize_dims (tuple): Dimensions to resize the image to after cropping.
+        threshold (float): Threshold value for applying a binary mask.
+    
+    Methods:
+        transform(img): Applies cropping, conversion to tensor, resizing, and normalization to an image.
+        apply_binary_mask(tensor, threshold): Applies a threshold-based binary mask to the tensor.
+    """
     def __init__(self, crop_box=(100, 50, 700, 585), resize_dims=(600, 535), threshold=0.5):
         self.crop_box = crop_box
         self.resize_dims = resize_dims
         self.threshold = threshold
 
     def transform(self, img):
+        """
+        Transforms an image using predefined settings including cropping, tensor conversion, resizing, and normalization.
+        
+        Args:
+            img (PIL.Image): The image to transform.
+        
+        Returns:
+            torch.Tensor: The transformed image as a tensor.
+        """
         if self.crop_box is not None:
             # img = TF.crop(img, *self.crop_box)
             img = TF.crop(img, 50, 100, 535, 600)
@@ -46,9 +67,36 @@ class TransformationPipeline:
 
     @staticmethod
     def apply_binary_mask(tensor, threshold):
+        """
+        Applies a binary mask to a tensor based on a threshold, setting values above the threshold to 1 and others to 0.
+        
+        Args:
+            tensor (torch.Tensor): The input tensor.
+            threshold (float): The threshold value.
+        
+        Returns:
+            torch.Tensor: The masked tensor.
+        """
         return torch.where(tensor > threshold, torch.ones_like(tensor), torch.zeros_like(tensor))
 
 class DatasetPreprocessor:
+    """
+    A class to handle the preprocessing of a dataset defined by a CSV file, which includes splitting, processing images,
+    and saving the processed data for training or testing.
+    
+    Attributes:
+        csv_file (str): Path to the CSV file containing image filenames and labels.
+        root_dir (str): Root directory path where the images are stored.
+        output_file (str): Path where the processed dataset will be saved.
+        subset (str): Specifies whether to process 'train' or 'test' subset.
+        test_size (float): Fraction of the dataset to be reserved as test set.
+        random_state (int): Seed for random operations to ensure reproducibility.
+        crop_box, resize_dims, threshold: Parameters for image transformation.
+    
+    Methods:
+        _split_dataset(): Splits the dataset into training and testing subsets.
+        process_and_save(): Processes the images and saves them along with labels in a dataset format.
+    """
     def __init__(self, csv_file, root_dir, output_file, subset='train', test_size=0.2, random_state=42, crop_box=(100, 50, 700, 585), resize_dims=(600, 535), threshold=0.5):
         self.csv_file = csv_file
         self.root_dir = root_dir
@@ -64,6 +112,9 @@ class DatasetPreprocessor:
         self._split_dataset()
 
     def _split_dataset(self):
+        """
+        Splits the dataset into training and testing indices based on the test_size and random_state attributes.
+        """
         indices = range(len(self.labels_frame))
         train_indices, test_indices = train_test_split(indices, test_size=self.test_size, random_state=self.random_state)
 
@@ -75,6 +126,12 @@ class DatasetPreprocessor:
             raise ValueError("subset must be 'train' or 'test'")
 
     def process_and_save(self):
+        """
+        Processes each image specified in the subset of the dataset, applies transformations, and saves the data in a file.
+        
+        The method loads images according to the indices determined by the subset, applies transformations,
+        and packages the images and their labels into a TensorDataset which is then saved to disk.
+        """
         processed_images = []
         label_indices = []  # This will store the class indices instead of one-hot vectors
         
@@ -100,4 +157,3 @@ class DatasetPreprocessor:
         # Save the dataset
         torch.save(dataset, self.output_file)
         print(f"Dataset has been processed and saved to {self.output_file}.")
-
