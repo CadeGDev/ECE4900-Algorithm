@@ -22,18 +22,8 @@ def setup():
         optimizer: optimizer function used to optimize algorithm
     """
 
-    # Extract hyperparameters
-    input_size = config["input_size"]
-    hidden_size = config["hidden_size"]
-    output_size = config["output_size"]
-    num_hidden_layers = config["num_hidden_layers"]
-    learning_rate = config["learning_rate"]
-    num_epochs = config["num_epochs"]
-    batch_size = config["batch_size"]
-    num_workers = config["num_workers"]
-
-    train_output_file = "ECE4900-Algorithm/project_root/data/processed_TrainDataset.pt"
-    test_output_file = "ECE4900-Algorithm/project_root/data/processed_TestDataset.pt"
+    train_output_file = "project_root/data/processed_TrainDataset.pt"
+    test_output_file = "project_root/data/processed_TestDataset.pt"
 
     # Load the preprocessed datasets
     train_dataset = torch.load(train_output_file)
@@ -63,7 +53,7 @@ def saveModel(model):
     """
     This function saves the algorithm with the highest accuracy model 
     """
-    path = "ECE4900-Algorithm\project_root\models\TrainedModelV1.pth"
+    path = "project_root\models\TrainedModelV1.pth"
     torch.save(model.state_dict(), path)
 
 # Function to test the model with the test dataset and print the accuracy for the test images
@@ -81,12 +71,15 @@ def testAccuracy(model, test_dataloader, device):
     model.eval()  # Set model to evaluation mode
     total_correct = 0
     total_samples = 0
-    
+    count = 0
     with torch.no_grad():
         for images, labels in test_dataloader:
             images = images.to(device)
             labels = labels.to(device)
             outputs = model(images)
+            if count == 0:
+                print("Network output:", outputs)
+                count=1
             # Apply sigmoid to convert logits to probabilities
             probs = torch.sigmoid(outputs)
             # Convert probabilities to binary predictions

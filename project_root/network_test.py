@@ -7,6 +7,7 @@ import numpy as np
 import os
 import pandas as pd
 from algorithm_model import config, Algorithm_v0_1 # Import hyperparameter values
+from data_preprocessing import TransformationPipeline as transform
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,11 +22,10 @@ def load_image(image_path):
     resize_dims=(600, 585)
     threshold=0.5
     # Load an image and apply preprocessing transformations
+     # Load an image and apply preprocessing transformations
     image = Image.open(image_path)
-    image = TF.to_tensor(image)
-    image = apply_binary_mask(image, threshold)
-    image = TF.resize(image, resize_dims)
-    image = TF.rgb_to_grayscale(image)
+    image = transform(image)
+    #image = image.unsqueeze(0)  # Add batch dimension
     return image
 
 def apply_binary_mask(tensor, threshold):
@@ -35,7 +35,6 @@ def test_network(image_path, model):
     # Load and preprocess the image
     image = load_image(image_path)
     
-    model.load_state_dict(torch.load('ECE4900-Algorithm\project_root\models\TrainedModelV1.pth'))
     # Run the image through the network
     model.eval()  # Set the model to evaluation mode
     with torch.no_grad():
@@ -45,7 +44,7 @@ def test_network(image_path, model):
     print("Network output:", output)
 
 # Path to a sample spectrogram image
-sample_image_path = 'ECE4900-Algorithm\project_root\data\test_image.png'
+sample_image_path = 'C:/Users/zande/Desktop/College_Work/Capstone/ECE4900-Algorithm/project_root/data/test_image.png'
 
 # Initialize the neural network
 input_size = 1427, 858
@@ -53,6 +52,7 @@ hidden_size = 128
 output_size = 10 
 num_hidden_layers = 2 
 
-model = Algorithm_v0_1(input_size, hidden_size, output_size, num_hidden_layers)
+model = Algorithm_v0_1(input_size, config['hidden_size'], config['output_size'], config['num_hidden_layers'])
+model.load_state_dict(torch.load('project_root\models\TrainedModelV1.pth'))
 # Test the network with a sample image
 test_network(sample_image_path, model)

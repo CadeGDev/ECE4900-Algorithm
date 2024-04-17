@@ -7,10 +7,10 @@ from algorithm_model import config, Algorithm_v0_1 # Import hyperparameter value
 from data_preprocessing import DatasetPreprocessor
 
 # Dataset file paths
-csv_file = 'ECE4900-Algorithm/project_root\data\Continuous\spectrogram_labels.csv'
-root_dir = 'ECE4900-Algorithm/project_root/data/Continuous'
-train_output_file = "ECE4900-Algorithm/project_root/data/processed_TrainDataset.pt"
-test_output_file = "ECE4900-Algorithm/project_root/data/processed_TestDataset.pt"
+csv_file = 'project_root\data\Continuous\spectrogram_labels.csv'
+root_dir = 'project_root/data/Continuous'
+train_output_file = "project_root/data/processed_TrainDataset.pt"
+test_output_file = "project_root/data/processed_TestDataset.pt"
 
 def main():
     # Training dataset
