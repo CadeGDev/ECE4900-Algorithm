@@ -1,79 +1,160 @@
 # Import statements
 import torch
-import torch.nn as nn
-import torch.optim as optim
 import torchvision.transforms.v2 as transforms  # For data preprocessing
-import torchvision
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, Dataset
 from PIL import Image
 from sklearn.model_selection import train_test_split # To install run "pip install scikit-learn" in terminal
+import numpy as np
+import os
+import pandas as pd
+from algorithm_model import config, Algorithm # Import hyperparameter values
 
-import librosa
-import librosa.display
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Define a custom transform function
-class ResizeAndGrayscaleTransform:
-    def __init__(self, target_size=(224, 224)):
-        self.target_size = target_size
+import torch
+from PIL import Image
+import torchvision.transforms.functional as TF
 
-    def __call__(self, img):
-        # Resize the image
-        img = img.resize(self.target_size)
+# Extract hyperparameters
+input_size = config["input_size"]
+hidden_size = config["hidden_size"]
+output_size = config["output_size"]
+num_hidden_layers = config["num_hidden_layers"]
+learning_rate = config["learning_rate"]
+num_epochs = config["num_epochs"]
+batch_size = config["batch_size"]
 
-        # Convert to grayscale
-        img = img.convert("L")
 
-        return img
+class TransformationPipeline:
+    """
+    A class for applying a series of transformations to an image, tailored for preparing data for neural network input.
     
-# Split dataset if the dataset is not already split
-def split_dataset(data, labels):
-    # Use train_test_split to split the dataset into training and validation sets
-    train_data, val_data, train_labels, val_labels = train_test_split(data, labels, test_size=0.2, random_state=42)
-    return train_data, val_data, train_labels, val_labels
-
-def show_spectrogram_images(train_loader, n_images=4):
+    Attributes:
+        crop_box (tuple): Coordinates for cropping the image.
+        resize_dims (tuple): Dimensions to resize the image to after cropping.
+        threshold (float): Threshold value for applying a binary mask.
+    
+    Methods:
+        transform(img): Applies cropping, conversion to tensor, resizing, and normalization to an image.
+        apply_binary_mask(tensor, threshold): Applies a threshold-based binary mask to the tensor.
     """
-    Displays a batch of spectrogram training images from the DataLoader.
+    def __init__(self, crop_box=(100, 50, 700, 585), resize_dims=(600, 535), threshold=0.5):
+        self.crop_box = crop_box
+        self.resize_dims = resize_dims
+        self.threshold = threshold
 
-    Args:
-    - train_loader: DataLoader containing the spectrogram dataset.
-    - n_images: Number of images to display (default is 4).
+    def transform(self, img):
+        """
+        Transforms an image using predefined settings including cropping, tensor conversion, resizing, and normalization.
+        
+        Args:
+            img (PIL.Image): The image to transform.
+        
+        Returns:
+            torch.Tensor: The transformed image as a tensor.
+        """
+        if self.crop_box is not None:
+            # img = TF.crop(img, *self.crop_box)
+            img = TF.crop(img, 50, 100, 535, 600)
+        img = TF.to_tensor(img)
+        # img = self.apply_binary_mask(img, self.threshold)
+        img = TF.resize(img, self.resize_dims)
+        # img = TF.resize(img, (600,535))
+        img = TF.rgb_to_grayscale(img)
+        img = TF.normalize(img, 0, 1)
+        return img
+
+    @staticmethod
+    def apply_binary_mask(tensor, threshold):
+        """
+        Applies a binary mask to a tensor based on a threshold, setting values above the threshold to 1 and others to 0.
+        
+        Args:
+            tensor (torch.Tensor): The input tensor.
+            threshold (float): The threshold value.
+        
+        Returns:
+            torch.Tensor: The masked tensor.
+        """
+        return torch.where(tensor > threshold, torch.ones_like(tensor), torch.zeros_like(tensor))
+
+class DatasetPreprocessor:
     """
-    # Get a batch of training data
-    images, _ = next(iter(train_loader))
+    A class to handle the preprocessing of a dataset defined by a CSV file, which includes splitting, processing images,
+    and saving the processed data for training or testing.
+    
+    Attributes:
+        csv_file (str): Path to the CSV file containing image filenames and labels.
+        root_dir (str): Root directory path where the images are stored.
+        output_file (str): Path where the processed dataset will be saved.
+        subset (str): Specifies whether to process 'train' or 'test' subset.
+        test_size (float): Fraction of the dataset to be reserved as test set.
+        random_state (int): Seed for random operations to ensure reproducibility.
+        crop_box, resize_dims, threshold: Parameters for image transformation.
+    
+    Methods:
+        _split_dataset(): Splits the dataset into training and testing subsets.
+        process_and_save(): Processes the images and saves them along with labels in a dataset format.
+    """
+    def __init__(self, csv_file, root_dir, output_file, subset='train', test_size=0.2, random_state=42, crop_box=(100, 50, 700, 585), resize_dims=(600, 535), threshold=0.5):
+        self.csv_file = csv_file
+        self.root_dir = root_dir
+        self.output_file = output_file
+        self.subset = subset
+        self.test_size = test_size
+        self.random_state = random_state
+        self.crop_box = crop_box
+        self.resize_dims = resize_dims
+        self.threshold = threshold
+        self.transformation_pipeline = TransformationPipeline(crop_box, resize_dims, threshold)
+        self.labels_frame = pd.read_csv(csv_file)
+        self._split_dataset()
 
-    # Make a grid from the batch
-    img_grid = torchvision.utils.make_grid(images[:n_images])
+    def _split_dataset(self):
+        """
+        Splits the dataset into training and testing indices based on the test_size and random_state attributes.
+        """
+        indices = range(len(self.labels_frame))
+        train_indices, test_indices = train_test_split(indices, test_size=self.test_size, random_state=self.random_state)
 
-    plt.figure(figsize=(10, 10))
-    # Convert the tensor to a format suitable for Matplotlib
-    np_img = img_grid.numpy()
-    plt.imshow(np.transpose(np_img, (1, 2, 0)), interpolation='nearest')
-    plt.title("Sample Spectrogram Images")
-    plt.axis('off')
-    plt.show()
+        if self.subset == 'train':
+            self.indices = train_indices
+        elif self.subset == 'test':
+            self.indices = test_indices
+        else:
+            raise ValueError("subset must be 'train' or 'test'")
 
-# Define The Transformation pipeline
-transform = transforms.Compose([
-    ResizeAndGrayscaleTransform(),  # Resize and convert to grayscale
-    transforms.ToTensor(),          # Convert image to PyTorch tensor
-    transforms.Normalize(mean=[0.5], std=[0.5])  # Normalize (adjust mean and std as needed)
-])
+    def process_and_save(self):
+        """
+        Processes each image specified in the subset of the dataset, applies transformations, and saves the data in a file.
+        
+        The method loads images according to the indices determined by the subset, applies transformations,
+        and packages the images and their labels into a TensorDataset which is then saved to disk.
+        """
+        processed_images = []
+        label_indices = []  # This will store the class indices instead of one-hot vectors
+        
+        num_bands = 50
+        for i in self.indices:
+            row = self.labels_frame.iloc[i]
+            img_path = os.path.join(self.root_dir, row['Filename'])
+            # Load and process image here, then append to processed_images and label_indices
+            center_frequency = int(row['Frequency(MHz)']) - 1  # Adjusted for 0 indexing
 
-# Define the path to your spectrogram image
-# TODO: define path to spectrogram images/dataset
-image_path = "/Users/cadeglauser/VSCose2Projects/ECE4900-Algorithm/project_root/spectrogram2.tiff"
-# Ex: image_path = "path/to/your/spectrogram_image.png"
+            with Image.open(img_path) as img:
+                transformed_img = self.transformation_pipeline.transform(img)
+                processed_images.append(transformed_img)
+            label_indices.append(center_frequency)  # Append the class index directly
 
-# Initialize size variables
-# TODO: Set default sizes for NN inputs based on spectrogram resolution
+        # Convert lists to tensors
+        images_tensor = torch.stack(processed_images)
 
-# Load and preprocess the image
-image = Image.open(image_path)
-preprocessed_image = transform(image)
-
-# Add a batch dimension to the image if needed
-# preprocessed_image = preprocessed_image.unsqueeze(0)
+        # Convert label indices to a tensor directly
+        labels_tensor = torch.tensor(label_indices, dtype=torch.long)  # Ensure the dtype is long for indices
+        dataset = TensorDataset(images_tensor, labels_tensor)
+        
+        # Save the dataset
+        torch.save(dataset, self.output_file)
+        print(f"Dataset has been processed and saved to {self.output_file}.")
 
